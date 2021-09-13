@@ -2,7 +2,7 @@
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
-#include <config.h>
+#include <config.hpp>
 
 #define BMP_SCK 13
 #define BMP_MISO 12
@@ -10,6 +10,15 @@
 #define BMP_CS 10
 
 Adafruit_BMP280 bmp280; // I2C
+
+struct cached_data
+{
+    float temperature;
+    float pressure;
+    float altitude;
+};
+
+cached_data bmp_cached_data;
 
 void init_bmp280()
 {
@@ -29,4 +38,8 @@ void loop_bmp280()
     Serial.printf("Temperature = %f *C\n", bmp280.readTemperature());
     Serial.printf("Pressure = %f hPa\n", bmp280.readPressure() / 100); // Pa = Pascal, hPa = hectoPascal
     Serial.printf("Approx altitude = %f m\n", bmp280.readAltitude(seaLevelhPa));
+
+    bmp_cached_data.temperature = bmp280.readTemperature();
+    bmp_cached_data.pressure = bmp280.readPressure() / 100;
+    bmp_cached_data.altitude = bmp280.readAltitude(seaLevelhPa);
 }

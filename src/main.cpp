@@ -1,17 +1,19 @@
 #include <Arduino.h>
-#include <config.h>
+#include <config.hpp>
 
 #if defined(USE_SCREEN)
-#include <screen.h>
+#include <screen.hpp>
 #endif
 
 #if defined(USE_GPS)
-#include <gps.h>
+#include <gps.hpp>
 #endif
 
 #if defined(USE_BMP280)
-#include <bmp280.h>
+#include <bmp280.hpp>
 #endif
+
+// #pragma once
 
 void setup()
 {
