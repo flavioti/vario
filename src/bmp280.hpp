@@ -3,6 +3,8 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
 #include <config.hpp>
+#include <cache_barometer.hpp>
+#include <list>
 
 #define BMP_SCK 13
 #define BMP_MISO 12
@@ -11,15 +13,6 @@
 
 Adafruit_BMP280 bmp280; // I2C
 
-struct cached_data
-{
-    float temperature;
-    float pressure;
-    float altitude;
-};
-
-cached_data bmp_cached_data;
-
 void init_bmp280()
 {
     boolean status = bmp280.begin(VARIO_BMP280_I2C_ADDRESS);
@@ -27,19 +20,28 @@ void init_bmp280()
     {
         Serial.println("Could not find a valid BMP280 sensor, check wiring!");
         for (;;)
-            ; // Don't proceed, loop forever
+            ;
     }
 }
 
+std::list<float> mylist = {};
+
 void loop_bmp280()
 {
-    // float seaLevelhPa = 1013.25; // Padrão
-    float seaLevelhPa = 1017.65; // Santa Rita do Passa Quatro
-    Serial.printf("Temperature = %f *C\n", bmp280.readTemperature());
-    Serial.printf("Pressure = %f hPa\n", bmp280.readPressure() / 100); // Pa = Pascal, hPa = hectoPascal
-    Serial.printf("Approx altitude = %f m\n", bmp280.readAltitude(seaLevelhPa));
+    if (mylist.size() >= VARIO_BMP280_SAMPLES)
+    {
+        mylist.pop_front();
+    }
 
-    bmp_cached_data.temperature = bmp280.readTemperature();
-    bmp_cached_data.pressure = bmp280.readPressure() / 100;
-    bmp_cached_data.altitude = bmp280.readAltitude(seaLevelhPa);
+    mylist.push_back(bmp280.readAltitude(1013.25));
+
+    baro_cache.temperature = bmp280.readTemperature();
+    baro_cache.pressure = bmp280.readPressure() / 100;
+    baro_cache.altitude = std::accumulate(mylist.begin(), mylist.end(), 0.0) / mylist.size();
+
+#ifdef VARIO_BMP280_LOG_ENABLED
+    Serial.printf("Temperature = %f *C\n", baro_cache.temperature);
+    Serial.printf("Pressure = %f hPa\n", baro_cache.pressure); // Pa = Pascal, hPa = hectoPascal
+    Serial.printf("Approx altitude = %f m\n", baro_cache.altitude);
+#endif
 }
