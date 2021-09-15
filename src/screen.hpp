@@ -16,10 +16,23 @@ void init_screen()
       ; // Don't proceed, loop forever
   }
 
+  display.display(); // Show initial text
+}
+
+void update_screen_a()
+{
   display.clearDisplay();
-  display.setTextSize(1); // Draw 2X-scale text
+  display.setTextSize(1); // 1 = 6x8, 2 = 12x16, 3 = 18x24
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0, 0);
-  display.println(F("Amantes do ar"));
-  display.display(); // Show initial text
+  display.print(baro_cache.temperature, 1);
+  display.print(" c      ");
+  display.setTextSize(1);
+  display.print(baro_cache.pressure, 1);
+  display.println(" hpa");
+  display.setTextSize(2);
+  display.setCursor(0, 30);
+  display.print(baro_cache.altitude, 1);
+  display.println(" m");
+  display.display();
 }
