@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <config.hpp>
+#include <cache_barometer.hpp>
 
 #if defined(USE_SCREEN)
 #include <screen.hpp>
@@ -13,14 +14,17 @@
 #include <bmp280.hpp>
 #endif
 
-// #pragma once
+#if defined(USE_BUZZER)
+#include <buzzer.hpp>
+#endif
 
 void setup()
 {
-    sleep(1);
+    sleep(2);
     Serial.begin(9600);
     while (!Serial)
         ;
+    Serial.println("iniciando");
 
 #if defined(USE_SCREEN)
     init_screen();
@@ -33,6 +37,10 @@ void setup()
 #if defined(USE_BMP280)
     init_bmp280();
 #endif
+
+#if defined(USE_BUZZER)
+    play_welcome_beep();
+#endif
 }
 
 void loop()
@@ -41,6 +49,13 @@ void loop()
     loop_bmp280();
 #endif
 
-    Serial.println("**********************");
-    delay(3000);
+#if defined(USE_SCREEN)
+    update_screen_a();
+#endif
+
+#if defined(USE_BUZZER)
+    // play_melody();
+#endif
+    // Serial.println("**********************");
+    delay(500);
 }
