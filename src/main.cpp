@@ -1,12 +1,16 @@
 #include <Arduino.h>
 #include <config.hpp>
-#include <cache_barometer.hpp>
+#include <cache_global.hpp>
+
+// https://github.com/JoepSchyns/Low_power_TTGO_T-beam/tree/master/low_power
+// https://github.com/JoepSchyns/Low_power_TTGO_T-beam/commit/8d2845051f3c24c58540f762110396d6d8d439a0
 
 #if defined(USE_SCREEN)
 #include <screen.hpp>
 #endif
 
 #if defined(USE_GPS)
+#include <TinyGPS++.h>
 #include <gps.hpp>
 #endif
 
@@ -18,6 +22,14 @@
 #include <buzzer.hpp>
 #endif
 
+#if defined(USE_ENERGIA)
+#include <energia.hpp>
+#endif
+
+#if defined(USE_WIFI) or defined(USE_OTA)
+#include <network.hpp>
+#endif
+
 void setup()
 {
     sleep(2);
@@ -26,12 +38,21 @@ void setup()
         ;
     Serial.println("iniciando");
 
+#if defined(USE_ENERGIA)
+    cache_status();
+#endif
+
+#if defined(USE_WIFI)
+    connect_wifi2();
+#endif
+
 #if defined(USE_SCREEN)
     init_screen();
 #endif
 
 #if defined(USE_GPS)
-    init_gps();
+    Serial.println("USE_GPS");
+    setup_g();
 #endif
 
 #if defined(USE_BMP280)
@@ -41,10 +62,20 @@ void setup()
 #if defined(USE_BUZZER)
     play_welcome_beep();
 #endif
+
+#if defined(USE_OTA)
+    config_ota();
+#endif
 }
 
 void loop()
 {
+    sys_cache.loop_counter++;
+
+#if defined(USE_GPS)
+    loop_g();
+#endif
+
 #if defined(USE_BMP280)
     loop_bmp280();
 #endif
@@ -54,8 +85,16 @@ void loop()
 #endif
 
 #if defined(USE_BUZZER)
-    // play_melody();
+    play_melody();
 #endif
-    // Serial.println("**********************");
+
+#if defined(USE_POST_METRICS) and defined(USE_WIFI)
+    send_metrics();
+#endif
+
+#if defined(USE_OTA)
+    handle_client();
+#endif
+
     delay(500);
 }
