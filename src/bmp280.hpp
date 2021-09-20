@@ -3,15 +3,10 @@
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
 #include <config.hpp>
-#include <cache_barometer.hpp>
+#include <cache_global.hpp>
 #include <list>
 
-#define BMP_SCK 13
-#define BMP_MISO 12
-#define BMP_MOSI 11
-#define BMP_CS 10
-
-Adafruit_BMP280 bmp280; // I2C
+Adafruit_BMP280 bmp280;
 
 void init_bmp280()
 {
@@ -40,8 +35,8 @@ void loop_bmp280()
     baro_cache.altitude = std::accumulate(mylist.begin(), mylist.end(), 0.0) / mylist.size();
 
 #ifdef VARIO_BMP280_LOG_ENABLED
-    Serial.printf("Temperature = %f *C\n", baro_cache.temperature);
-    Serial.printf("Pressure = %f hPa\n", baro_cache.pressure); // Pa = Pascal, hPa = hectoPascal
-    Serial.printf("Approx altitude = %f m\n", baro_cache.altitude);
+    Serial.printf("BTE = %f *C\n", baro_cache.temperature);
+    Serial.printf("BPR = %f hPa\n", baro_cache.pressure);
+    Serial.printf("BAL = %f m\n", baro_cache.altitude);
 #endif
 }
