@@ -4,9 +4,9 @@
 // RTC_DATA_ATTR guarda dados durante deep sleep
 struct barometer_cache
 {
-    float temperature = 0;
-    float pressure = 0;
-    float altitude = 0;
+    float temperature = 9999;
+    float pressure = 9999;
+    float altitude = 9999;
 };
 
 barometer_cache baro_cache;
@@ -26,6 +26,8 @@ struct system_cache
     int loop_counter = 0;
     float battery_voltage = 9999;
     int battery_percentage = 9999;
+    float esp32_temperature = 9999;
+    float esp32_ts_temperature = 9999;
 };
 
 system_cache sys_cache;
