@@ -1,4 +1,5 @@
 #include <axp20x.h>
+#include <cache_global.hpp>
 
 AXP20X_Class axp;
 bool axpIrq = 0;
@@ -22,11 +23,56 @@ void power_led_blink_high_rate()
 
 void power_led_on()
 {
+    // Está causando kernel panic, não sei o motivo ainda
     axp.setChgLEDMode(AXP20X_LED_LOW_LEVEL); // LED full on
 }
 
-void energia_setup()
+void print_sys_diagnostic()
 {
+    Serial.printf("axp20x timer status....................: %d\n", axp.getTimerStatus());
+    Serial.printf("axp20x default v warning level 1.......: %u mV \n", axp.getVWarningLevel1());
+    Serial.printf("axp20x v warning level 1...............: %u mV \n", axp.getVWarningLevel1());
+    Serial.printf("axp20x default v warning level 2.......: %u mV \n", axp.getVWarningLevel2());
+    Serial.printf("axp20x v warning level 2...............: %u mV \n", axp.getVWarningLevel2());
+    Serial.printf("axp20x default power down voltage......: %u mV \n", axp.getPowerDownVoltage());
+    Serial.printf("axp20x power down voltage..............: %u mV \n", axp.getPowerDownVoltage());
+    Serial.println("axp20x power output dcdc3..............: ON");
+    Serial.println("axp20x power output exten..............: ON");
+    Serial.println("axp20x power output lora...............: ON");
+    Serial.println("axp20x power output gnss...............: ON");
+    Serial.println("axp20x power output ld04...............: ON");
+    Serial.println("axp20x power output dcdc2..............: ON");
+    Serial.println("axp20x power output oled pins..........: ON");
+    Serial.printf("axp20x dc2 enabled.....................: %d\n", axp.isDCDC2Enable());
+    Serial.printf("axp20x dcdc2 voltage...................: %d mV\n", axp.getDCDC2Voltage());
+    Serial.printf("axp20x dc3 enabled.....................: %d\n", axp.isDCDC3Enable());
+    Serial.printf("axp20x dcdc3 voltage...................: %d mV\n", axp.getDCDC3Voltage());
+    Serial.printf("axp20x ldo2 enabled....................: %d\n", axp.isLDO2Enable());
+    Serial.printf("axp20x ldo2 voltage....................: %d mV\n", axp.getLDO2Voltage());
+    Serial.printf("axp20x ldo3 enabled (GNSS).............: %d\n", axp.isLDO3Enable());
+    Serial.printf("axp20x ldo3 voltage (GNSS).............: %d mV\n", axp.getLDO3Voltage());
+    Serial.printf("axp20x ldo4 enabled....................: %d\n", axp.isLDO4Enable());
+    Serial.printf("axp20x ldo4 voltage....................: %d mV\n", axp.getLDO4Voltage());
+    Serial.printf("axp20x exten enabled...................: %d\n", axp.isExtenEnable());
+    Serial.printf("axp20x battery voltage.................: %f\n", axp.getBattVoltage());
+    Serial.printf("axp20x battery percentage..............: %i\n", axp.getBattPercentage());
+    Serial.printf("axp20x battery charge current set......: %f\n", axp.getSettingChargeCurrent());
+    Serial.printf("axp20x temperature......................: %f\n", axp.getTemp());
+    Serial.printf("axp20x ts temperature...................: %f\n", axp.getTSTemp());
+}
+
+void cache_status()
+{
+    sys_cache.battery_voltage = axp.getBattVoltage();
+    sys_cache.battery_percentage = axp.getBattPercentage();
+    sys_cache.esp32_temperature = axp.getTemp();
+    sys_cache.esp32_ts_temperature = axp.getTSTemp();
+}
+
+void configure_system()
+{
+    Serial.println("configuring system");
+
     const uint8_t i2c_sda = 21;
     const uint8_t i2c_scl = 22;
     Wire.begin(i2c_sda, i2c_scl);
@@ -36,65 +82,26 @@ void energia_setup()
     if (ret == AXP_FAIL)
     {
         Serial.println("AXP Power begin failed");
-        while (1)
-            ;
-    }
-    else
-    {
-        Serial.println("AXP192 OK");
+        Serial.printf("axp20x.......................: %d\n", ret);
+        exit(1);
     }
 
-    Serial.println();
+    Serial.printf("axp20x.................................: %d\n", ret);
+
     axp.setVWarningLevel1(3450);
     axp.setVWarningLevel2(3400);
-    uint16_t level1 = axp.getVWarningLevel1();
-    uint16_t level2 = axp.getVWarningLevel2();
-    Serial.printf("getVWarningLevel1:%u mV \n", level1);
-    Serial.printf("getVWarningLevel2:%u mV \n", level2);
-    Serial.printf("getPowerDonwVoltage:%u mV \n", axp.getPowerDownVoltage());
     axp.setPowerDownVoltage(2600);
-    Serial.printf("getPowerDonwVoltage:%u mV \n", axp.getPowerDownVoltage());
-    Serial.println();
-
-    power_led_off(); // Led azul que doi os olhos
-
-    delay(1000);
+    axp.setDCDC1Voltage(3300); // for the OLED power
+    axp.setLDO3Voltage(3500);
 
     // Liga a energia usando AXP
-    axp.setPowerOutPut(AXP202_DCDC3, true); // ???
-    axp.setPowerOutPut(AXP192_EXTEN, true); // ???
-    axp.setPowerOutPut(AXP192_LDO2, true);  // LORA power
-    axp.setPowerOutPut(AXP192_LDO3, true);  // GPS power (NEO chip)
-    axp.setPowerOutPut(AXP202_LDO4, true);
-    axp.setPowerOutPut(AXP192_DCDC2, true); // DCDC2 used as DCDC for your needs, in V8
-    axp.setPowerOutPut(AXP192_DCDC1, true); // power to OLED pins + some other
-    axp.setLDO4Voltage(AXP202_LDO4_3300MV);
-    axp.setLDO3Voltage(3500);
-    axp.setPowerOutPut(AXP202_LDO3, true);
-
-    Serial.print("DC2:");
-    Serial.print(axp.isDCDC2Enable() ? String(axp.getDCDC2Voltage()) + " mv" : "DISABLE");
-    Serial.println("  ");
-
-    Serial.print("DC3:");
-    Serial.print(axp.isDCDC3Enable() ? String(axp.getDCDC3Voltage()) + " mv" : "DISABLE");
-    Serial.println("  ");
-
-    Serial.print("LDO2:");
-    Serial.print(axp.isLDO2Enable() ? String(axp.getLDO2Voltage()) + " mv" : "DISABLE");
-    Serial.println("  ");
-
-    Serial.print("LDO3:");
-    Serial.print(axp.isLDO3Enable() ? String(axp.getLDO3Voltage()) + " mv" : "DISABLE");
-    Serial.println("  ");
-
-    Serial.print("LDO4:");
-    Serial.print(axp.isLDO4Enable() ? "ENABLE" : "DISABLE");
-    Serial.println("  ");
-
-    Serial.print("Exten:");
-    Serial.print(axp.isExtenEnable() ? "ENABLE" : "DISABLE");
-    Serial.println(" ");
+    axp.setPowerOutPut(AXP192_DCDC3, AXP202_ON); // ???
+    axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON); // ???
+    axp.setPowerOutPut(AXP192_LDO2, AXP202_ON);  // LORA power
+    axp.setPowerOutPut(AXP192_LDO3, AXP202_ON);  // GPS power (NEO chip)
+    axp.setPowerOutPut(AXP202_LDO4, AXP202_ON);
+    axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON); // DCDC2 used as DCDC for your needs, in V8
+    axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // power to OLED pins + some other
 
     if (axpIrq)
     {
@@ -253,18 +260,4 @@ void energia_setup()
         }
         axp.clearIRQ();
     }
-}
-
-void print_esp_temp()
-{
-    float ts = axp.getTemp();
-    Serial.printf("ESP Temperadura: %g graus\n", ts);
-
-    digitalWrite(14, HIGH); // turn the LED on (HIGH is the voltage level)
-    delay(1000);            // wait for a second
-    digitalWrite(14, LOW);  // turn the LED off by making the voltage LOW
-    delay(1000);            // wait for a second
-
-    // initialize digital pin LED_BUILTIN as an output.
-    pinMode(14, OUTPUT);
 }
