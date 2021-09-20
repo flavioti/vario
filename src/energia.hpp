@@ -95,13 +95,13 @@ void configure_system()
     axp.setLDO3Voltage(3500);
 
     // Liga a energia usando AXP
-    axp.setPowerOutPut(AXP192_DCDC3, AXP202_ON); // ???
+    axp.setPowerOutPut(AXP192_DCDC3, AXP202_ON); // I foresee similar benefit for restting T-watch
     axp.setPowerOutPut(AXP192_EXTEN, AXP202_ON); // ???
-    axp.setPowerOutPut(AXP192_LDO2, AXP202_ON);  // LORA power
-    axp.setPowerOutPut(AXP192_LDO3, AXP202_ON);  // GPS power (NEO chip)
+    axp.setPowerOutPut(AXP192_LDO2, AXP202_ON);  // LORA power + provides power to GPS backup battery
+    axp.setPowerOutPut(AXP192_LDO3, AXP202_ON);  // GPS main power (NEO chip)
     axp.setPowerOutPut(AXP202_LDO4, AXP202_ON);
     axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON); // DCDC2 used as DCDC for your needs, in V8
-    axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // power to OLED pins + some other
+    axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // power ESP + OLED pins + some other
 
     if (axpIrq)
     {
