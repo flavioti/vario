@@ -7,3 +7,4 @@ temp/
 .vscode/extensions.json
 
 .vscode/settings.json
+devtools/insightsapi/__pycache__/metrics.cpython-39.pyc
