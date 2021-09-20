@@ -1,0 +1,44 @@
+# docker-compose --compatibility up -d
+
+version: "3.7"
+
+networks:
+  app:
+    driver: bridge
+    name: microservices
+
+services:
+  postgres:
+    ulimits:
+        memlock:
+            soft: -1
+            hard: -1
+    networks:
+        - app
+    logging:
+        driver: "json-file"
+        options:
+            max-size: "10m"
+    deploy:
+        resources:
+            limits:
+                memory: 2048M
+                cpus: "1"
+            reservations:
+                memory: 2048M
+    image: library/postgres:alpine
+    container_name: postgresdev
+    environment:
+        POSTGRES_DB: postgres
+        POSTGRES_USER: postgres
+        POSTGRES_PASSWORD: postgres
+        TZ: GMT
+    volumes:
+        - ./postgres_data:/var/lib/postgresql/data"
+    ports:
+        - 5432:5432
+    healthcheck:
+        test: "pg_isready -h localhost -p 5432 -q -U postgres"
+        interval: 3s
+        timeout: 5s
+        retries: 5
