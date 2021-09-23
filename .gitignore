@@ -9,3 +9,4 @@ temp/
 .vscode/settings.json
 devtools/insightsapi/__pycache__/metrics.cpython-39.pyc
 .env
+src/secrets.hpp

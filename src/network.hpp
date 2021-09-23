@@ -6,6 +6,7 @@
 #include <ESPmDNS.h>
 #include <Update.h>
 #include <utils.hpp>
+#include <secrets.hpp>
 
 void connect_wifi2()
 {
@@ -13,7 +14,7 @@ void connect_wifi2()
     WiFi.disconnect();
 
     Serial.print("Connecting to WiFi");
-    WiFi.begin(WIFI_SSID, WIFI_PASSWORD);
+    WiFi.begin(WIFI_SSID, WIFI_PASS);
 
     while (WiFi.status() != WL_CONNECTED)
     {

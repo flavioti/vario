@@ -90,11 +90,6 @@
 
 #define USE_WIFI
 
-#if defined(USE_WIFI) or defined(USE_OTA)
-#define WIFI_SSID std::getenv("WIFI_SSID")
-#define WIFI_PASSWORD std::getenv("WIFI_PASS")
-#endif
-
 // -----------------------------------------------------------------------------
 // POST METRICS
 // -----------------------------------------------------------------------------
