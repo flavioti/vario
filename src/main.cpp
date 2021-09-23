@@ -30,6 +30,17 @@
 #include <network.hpp>
 #endif
 
+void Task1code(void *pvParameters)
+{
+    for (;;)
+    {
+        Serial.print("Task1 running on core ");
+        Serial.println(xPortGetCoreID());
+
+        test_vario();
+    }
+}
+
 void setup()
 {
     sleep(2);
@@ -60,7 +71,7 @@ void setup()
 #endif
 
 #if defined(USE_BUZZER)
-    play_welcome_beep();
+    play_welcome_beep_task();
 #endif
 
 #if defined(USE_OTA)
@@ -84,10 +95,6 @@ void loop()
     update_screen_a();
 #endif
 
-#if defined(USE_BUZZER)
-    play_melody();
-#endif
-
 #if defined(USE_POST_METRICS) and defined(USE_WIFI)
     send_metrics();
 #endif
@@ -96,5 +103,5 @@ void loop()
     handle_client();
 #endif
 
-    delay(500);
+    // delay(500);
 }

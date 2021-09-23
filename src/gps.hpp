@@ -15,20 +15,15 @@ HardwareSerial SerialGPS(1);
 void setup_g()
 {
   while (!Serial)
-    ; // Wait for user to open the terminal
+    ;
   Serial.println("Connected to Serial");
   Wire.begin(I2C_SDA, I2C_SCL);
-
   SerialGPS.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
-  Serial.println("All comms started");
-  delay(100);
 }
 
 void loop_g()
 {
-  Serial.println();
-  Serial.print("===== STATE ");
-  Serial.println(state);
+  Serial.printf("GPS::Running on core %i\n", xPortGetCoreID());
   switch (state)
   {
   case 0: // soft solution, should be sufficient and works in most (all) cases
@@ -50,7 +45,6 @@ void loop_g()
         myGPS.saveConfiguration(); //Save the current settings to flash and BBR
         break;
       }
-      delay(1000);
     } while (1);
     Serial.println("GPS Saved config");
     state++;
@@ -59,7 +53,7 @@ void loop_g()
   case 1: // hardReset
     Serial.println("GPS Issuing hardReset (cold start)");
     myGPS.hardReset();
-    delay(3000);
+    delay(1000);
     SerialGPS.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
     if (myGPS.begin(SerialGPS))
     {
@@ -76,7 +70,7 @@ void loop_g()
   case 2: // factoryReset, expect to see GPS back at 9600 baud
     Serial.println("Issuing factoryReset");
     myGPS.factoryReset();
-    delay(3000); // takes more than one second... a loop to resync would be best
+    delay(1000); // takes more than one second... a loop to resync would be best
     SerialGPS.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
     if (myGPS.begin(SerialGPS))
     {
@@ -105,9 +99,9 @@ void loop_g()
     geo_cache.satellites = gps.satellites.value();
 
 #if defined(GPS_LOG_ENABLED)
-    Serial.printf("GLO = %f *C\n", geo_cache.longitude);
-    Serial.printf("GLA = %f\n", geo_cache.latitude);
-    Serial.printf("GAL = %f\n", geo_cache.altitude);
+    Serial.printf("GLO = %f *C ", geo_cache.longitude);
+    Serial.printf("GLA = %f ", geo_cache.latitude);
+    Serial.printf("GAL = %f ", geo_cache.altitude);
     Serial.printf("GSA = %i\n", geo_cache.satellites);
 #endif
   }

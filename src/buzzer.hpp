@@ -1,31 +1,12 @@
-#include <Tone32.h>
+#ifndef BUZZER_H_
+#define BUZZER_H_
 
-#define BUZZER_PIN 15
-#define BUZZER_CHANNEL 0
+void test_vario();
 
-void play_melody()
-{
-    tone(BUZZER_PIN, NOTE_C4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_D4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_E4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_F4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_G4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_A4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_B4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-}
+void play_melody();
 
-#define tone_out1 8
-#define tone_out2 9
+void play_welcome_beep(void *pvParameters);
 
-void play_welcome_beep()
-{
-    tone(BUZZER_PIN, NOTE_DS8, 50, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-}
+void play_welcome_beep_task();
+
+#endif /* BUZZER_H_ */

@@ -35,8 +35,8 @@ void loop_bmp280()
     baro_cache.altitude = std::accumulate(mylist.begin(), mylist.end(), 0.0) / mylist.size();
 
 #ifdef VARIO_BMP280_LOG_ENABLED
-    Serial.printf("BTE = %f *C\n", baro_cache.temperature);
-    Serial.printf("BPR = %f hPa\n", baro_cache.pressure);
+    Serial.printf("BTE = %f *C ", baro_cache.temperature);
+    Serial.printf("BPR = %f hPa ", baro_cache.pressure);
     Serial.printf("BAL = %f m\n", baro_cache.altitude);
 #endif
 }
