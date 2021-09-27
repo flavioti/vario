@@ -23,7 +23,7 @@ void setup_g()
 
 void loop_g()
 {
-  Serial.printf("GPS::Running on core %i\n", xPortGetCoreID());
+  // Serial.printf("GPS::Running on core %i\n", xPortGetCoreID());
   switch (state)
   {
   case 0: // soft solution, should be sufficient and works in most (all) cases

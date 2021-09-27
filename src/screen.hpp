@@ -17,6 +17,12 @@ void init_screen()
       ; // Don't proceed, loop forever
   }
 
+  display.clearDisplay();
+  display.setTextSize(3); // 1 = 6x8, 2 = 12x16, 3 = 18x24
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0, 0);
+  display.println("COISA");
+  display.println("TECH");
   display.display();
 }
 
@@ -63,9 +69,11 @@ void update_screen_a()
   display.print(sys_cache.battery_voltage);
   display.print(" ");
 
+#ifdef AXP20X
   display.print("SBP");
   display.print(sys_cache.battery_percentage);
   display.print(" ");
+#endif
 
   display.display();
 }

@@ -9,4 +9,6 @@ void play_welcome_beep(void *pvParameters);
 
 void play_welcome_beep_task();
 
+void play_vario_beep(float vario);
+
 #endif /* BUZZER_H_ */

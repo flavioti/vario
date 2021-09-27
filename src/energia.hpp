@@ -1,10 +1,25 @@
 #include <axp20x.h>
 #include <cache_global.hpp>
+#include "esp32-hal-cpu.h"
 
 AXP20X_Class axp;
-bool axpIrq = 0;
+bool axpIrq = 1;
 
 // variável display foi declarado dentro de screen.h
+/**
+   Layout
+   # esp32_uptime
+   # TYPE esp32_uptime gauge
+   esp32_uptime 23899
+*/
+void setMetric(String *p, String metric, String value)
+{
+    *p += "# " + metric + "\n";
+    *p += "# TYPE " + metric + " gauge\n";
+    *p += "" + metric + " ";
+    *p += value;
+    *p += "\n";
+}
 
 void power_led_off()
 {
@@ -59,14 +74,30 @@ void print_sys_diagnostic()
     Serial.printf("axp20x battery charge current set......: %f\n", axp.getSettingChargeCurrent());
     Serial.printf("axp20x temperature......................: %f\n", axp.getTemp());
     Serial.printf("axp20x ts temperature...................: %f\n", axp.getTSTemp());
+    Serial.printf("ESP frequency...........................: %d MHz\n", ESP.getCpuFreqMHz());
 }
 
-void cache_status()
+void cache_core_status()
 {
     sys_cache.battery_voltage = axp.getBattVoltage();
+#ifdef AXP20X
     sys_cache.battery_percentage = axp.getBattPercentage();
+#endif
     sys_cache.esp32_temperature = axp.getTemp();
     sys_cache.esp32_ts_temperature = axp.getTSTemp();
+    // sys_cache.sketch_size = ESP.getSketchSize();
+    // sys_cache.flash_size = ESP.getFreeSketchSpace();
+    // int available_size = flash_size - sketch_size;
+    sys_cache.uptime = millis();
+    sys_cache.power_down_voltage = axp.getPowerDownVoltage();
+#if defined(SYSCACHE_LOG_ENABLED)
+    Serial.printf("SBV = %f V ", sys_cache.battery_voltage);
+#ifdef AXP20X
+    Serial.printf("SBP = %d % ", sys_cache.battery_percentage);
+#endif
+    Serial.printf("ST1 = %f *C ", sys_cache.esp32_temperature);
+    Serial.printf("ST2 = %f *C \n", sys_cache.esp32_ts_temperature);
+#endif
 }
 
 void configure_system()
@@ -77,20 +108,16 @@ void configure_system()
     const uint8_t i2c_scl = 22;
     Wire.begin(i2c_sda, i2c_scl);
 
-    int ret = axp.begin(Wire, AXP192_SLAVE_ADDRESS);
-
-    if (ret == AXP_FAIL)
+    int ret = 1;
+    while (ret != 0)
     {
-        Serial.println("AXP Power begin failed");
-        Serial.printf("axp20x.......................: %d\n", ret);
-        exit(1);
+        ret = axp.begin(Wire, AXP192_SLAVE_ADDRESS);
+        Serial.printf("axp20x.................................: %d\n", ret);
     }
-
-    Serial.printf("axp20x.................................: %d\n", ret);
 
     axp.setVWarningLevel1(3450);
     axp.setVWarningLevel2(3400);
-    axp.setPowerDownVoltage(2600);
+    // axp.setPowerDownVoltage(2600);
     axp.setDCDC1Voltage(3300); // for the OLED power
     axp.setLDO3Voltage(3500);
 
@@ -102,6 +129,7 @@ void configure_system()
     axp.setPowerOutPut(AXP202_LDO4, AXP202_ON);
     axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON); // DCDC2 used as DCDC for your needs, in V8
     axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // power ESP + OLED pins + some other
+    setCpuFrequencyMhz(240);                     // 80, 160, 240
 
     if (axpIrq)
     {

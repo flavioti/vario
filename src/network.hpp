@@ -48,15 +48,21 @@ void send_metrics()
                             "&loo=" + String(sys_cache.loop_counter) +
                             "&sbv=" + String(sys_cache.battery_voltage, 3) +
                             "&sbp=" + String(sys_cache.battery_percentage);
-        http.begin(serverPath);
-        int httpResponseCode = http.GET();
-
-        if (httpResponseCode != 204)
+        if (http.begin(serverPath))
         {
-            Serial.print("Error code: ");
-            Serial.println(httpResponseCode);
+            int httpResponseCode = http.GET();
+
+            if (httpResponseCode != 204)
+            {
+                Serial.print("Error code: ");
+                Serial.println(httpResponseCode);
+            }
+            http.end();
         }
-        http.end();
+    }
+    else
+    {
+        Serial.println("NETWORK - Can't send metrics, WiFi not connected");
     }
 }
 
@@ -145,6 +151,58 @@ const char *serverIndex =
     "});"
     "</script>";
 
+String getMetrics()
+{
+    String p = ""; // acumulador de dados
+
+    int sketch_size = ESP.getSketchSize();
+    int flash_size = ESP.getFreeSketchSpace();
+    int available_size = flash_size - sketch_size;
+    // float temperature = ((temprature_sens_read() - 32) / 1.8);
+
+    setMetric(&p, "esp32_uptime", String(millis()));
+    setMetric(&p, "esp32_wifi_rssi", String(WiFi.RSSI()));
+    setMetric(&p, "esp32_heap_size", String(ESP.getHeapSize()));
+    setMetric(&p, "esp32_free_heap", String(ESP.getFreeHeap()));
+    setMetric(&p, "esp32_sketch_size", String(sketch_size));
+    setMetric(&p, "esp32_flash_size", String(flash_size));
+    setMetric(&p, "esp32_available_size", String(available_size));
+    setMetric(&p, "esp32_internal_temperature", String(sys_cache.esp32_temperature));
+
+    // setMetric(&p, "esp32_boot_counter", String(getBootCounter()));
+    setMetric(&p, "esp32_loop_counter", String(sys_cache.loop_counter));
+    setMetric(&p, "esp32_battery_voltage", String(sys_cache.battery_voltage));
+    setMetric(&p, "esp32_battery_percentage", String(sys_cache.battery_percentage));
+    setMetric(&p, "esp32_power_down_voltage", String(sys_cache.power_down_voltage));
+    setMetric(&p, "esp32_loop_millis", String(sys_cache.loop_millis));
+
+    setMetric(&p, "esp32_baro_temperature", String(baro_cache.temperature, 1));
+    setMetric(&p, "esp32_baro_pressure", String(baro_cache.pressure, 1));
+    setMetric(&p, "esp32_baro_altitude_raw", String(baro_cache.altitude_raw, 1));
+    setMetric(&p, "esp32_baro_altitude_sample", String(baro_cache.altitude_sample, 1));
+    setMetric(&p, "esp32_baro_altitude", String(baro_cache.altitude, 1));
+    setMetric(&p, "esp32_baro_reads", String(baro_cache.reads));
+    setMetric(&p, "esp32_baro_sample_count", String(baro_cache.sample_count));
+    setMetric(&p, "esp32_baro_vario", String(baro_cache.vario, 6));
+
+    setMetric(&p, "esp32_geo_altitude", String(geo_cache.altitude, 1));
+    setMetric(&p, "esp32_geo_latitude", String(geo_cache.latitude, 6));
+    setMetric(&p, "esp32_geo_longitude", String(geo_cache.longitude, 6));
+    setMetric(&p, "esp32_geo_satellites", String(geo_cache.satellites));
+
+    float esp32_mix_altitude = (baro_cache.altitude + geo_cache.altitude) / 2;
+    setMetric(&p, "esp32_mix_altitude", String(esp32_mix_altitude, 1));
+
+    return p;
+}
+
+void handleMetrics()
+{
+    digitalWrite(LED_BUILTIN, 1);
+    ota_server.send(200, "text/plain", getMetrics());
+    digitalWrite(LED_BUILTIN, 0);
+}
+
 void config_ota(void)
 {
     if (WiFi.status() == WL_CONNECTED)
@@ -212,12 +270,17 @@ void config_ota(void)
                 }
             });
 
+        ota_server.on("/metrics", HTTP_GET, handleMetrics);
+
         ota_server.begin();
+    }
+    else
+    {
+        Serial.println("NETWORK - OTA server not initialized");
     }
 }
 
 void handle_client()
 {
     ota_server.handleClient();
-    delay(1);
 }

@@ -24,6 +24,14 @@
 #endif
 
 // -----------------------------------------------------------------------------
+// CORE
+// -----------------------------------------------------------------------------
+
+#define AXP192
+// #define AXP20X
+// #define SYSCACHE_LOG_ENABLED
+
+// -----------------------------------------------------------------------------
 // OLED
 // -----------------------------------------------------------------------------
 
@@ -42,7 +50,7 @@
 #if defined(USE_GPS)
 #define GPS_SERIAL_NUM 1
 #define GPS_BAUDRATE 9600
-#define GPS_LOG_ENABLED
+// #define GPS_LOG_ENABLED
 #define I2C_SDA 21
 #define I2C_SCL 22
 #define GPS_RX_PIN 34
@@ -56,10 +64,12 @@
 #define USE_BMP280
 
 #if defined(USE_BMP280)
-#define VARIO_BMP280_LOG_ENABLED
+// #define VARIO_BMP280_LOG_ENABLED
 #define VARIO_BMP280_I2C_ADDRESS 0x76
-// #define VARIO_BMP280_I2C_ADDRESS 0x77
-#define VARIO_BMP280_SAMPLES 10
+#define VARIO_BMP280_SAMPLES 5
+// Task
+#define VARIO_BMP280_TASK_INTERVAL_MS 5000
+#define VARIO_BMP280_TASK_CORE 2
 #endif
 
 // -----------------------------------------------------------------------------
@@ -69,33 +79,28 @@
 #define USE_BUZZER
 
 // -----------------------------------------------------------------------------
-// ENERGIA
-// -----------------------------------------------------------------------------
-
-#define USE_ENERGIA
-
-// -----------------------------------------------------------------------------
 // OTA
 // -----------------------------------------------------------------------------
 
 #define USE_OTA
 
 #if defined(USE_OTA)
-// #define RESTART_IF_MDNS_FAIL // Reinicia o ESP32 se o MDNS falhar
+#define RESTART_IF_MDNS_FAIL // Reinicia o ESP32 se o MDNS falhar
 #endif
 
 // -----------------------------------------------------------------------------
 // WIFI
 // -----------------------------------------------------------------------------
 
-#define USE_WIFI
+// #define USE_WIFI
 
 // -----------------------------------------------------------------------------
 // POST METRICS
 // -----------------------------------------------------------------------------
 
-#define USE_POST_METRICS
+// #define USE_POST_METRICS
 
-#if defined(USE_POST_METRICS) and defined(USE_WIFI)
+#if defined(USE_POST_METRICS)
+#define USE_WIFI
 #define METRICS_URL "http://192.168.99.14:8080/"
 #endif

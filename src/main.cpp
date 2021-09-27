@@ -22,9 +22,7 @@
 #include <buzzer.hpp>
 #endif
 
-#if defined(USE_ENERGIA)
 #include <energia.hpp>
-#endif
 
 #if defined(USE_WIFI) or defined(USE_OTA)
 #include <network.hpp>
@@ -49,11 +47,15 @@ void setup()
         ;
     Serial.println("iniciando");
 
-#if defined(USE_ENERGIA)
-    cache_status();
+    configure_system();
+    print_sys_diagnostic();
+    cache_core_status();
+
+#if defined(USE_BUZZER)
+    play_welcome_beep_task();
 #endif
 
-#if defined(USE_WIFI)
+#if defined(USE_WIFI) or defined(USE_OTA)
     connect_wifi2();
 #endif
 
@@ -70,38 +72,44 @@ void setup()
     init_bmp280();
 #endif
 
-#if defined(USE_BUZZER)
-    play_welcome_beep_task();
-#endif
-
 #if defined(USE_OTA)
     config_ota();
 #endif
 }
 
+unsigned long last_loop_time = millis();
+
 void loop()
 {
-    sys_cache.loop_counter++;
+    sys_cache.loop_millis = millis() - last_loop_time;
+    if (sys_cache.loop_millis > 10) // 500ms
+    {
+        last_loop_time = millis();
+        sys_cache.loop_counter++;
+        cache_core_status();
 
 #if defined(USE_GPS)
-    loop_g();
+        loop_g();
 #endif
 
 #if defined(USE_BMP280)
-    loop_bmp280();
+        // begin_read_bmp280_task();
+        // loop_bmp280();
+        loop_bmp280_by_time();
 #endif
 
 #if defined(USE_SCREEN)
-    update_screen_a();
+        update_screen_a();
 #endif
 
 #if defined(USE_POST_METRICS) and defined(USE_WIFI)
-    send_metrics();
+        send_metrics();
 #endif
 
 #if defined(USE_OTA)
-    handle_client();
+        handle_client();
 #endif
+    }
 
-    // delay(500);
+    play_vario_beep(baro_cache.vario);
 }
