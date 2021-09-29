@@ -109,7 +109,6 @@ void loop()
 #if defined(USE_OTA)
         handle_client();
 #endif
+        play_vario_beep(baro_cache.vario);
     }
-
-    play_vario_beep(baro_cache.vario);
 }
