@@ -129,7 +129,7 @@ void configure_system()
     axp.setPowerOutPut(AXP202_LDO4, AXP202_ON);
     axp.setPowerOutPut(AXP192_DCDC2, AXP202_ON); // DCDC2 used as DCDC for your needs, in V8
     axp.setPowerOutPut(AXP192_DCDC1, AXP202_ON); // power ESP + OLED pins + some other
-    setCpuFrequencyMhz(240);                     // 80, 160, 240
+    setCpuFrequencyMhz(80);                      // 80, 160, 240
 
     if (axpIrq)
     {
