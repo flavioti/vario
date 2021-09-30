@@ -30,6 +30,7 @@
 #endif
 
 TaskHandle_t BuzzerTaskHandler;
+TaskHandle_t WelcomeTaskHandler;
 
 void setup()
 {
@@ -50,7 +51,8 @@ void setup()
     cache_core_status();
 
 #if defined(USE_BUZZER)
-    play_welcome_beep_task();
+    xTaskCreatePinnedToCore(play_welcome_beep, "play_welcome_beep", 10000, NULL, 1, &WelcomeTaskHandler, 1);
+    xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 2048, NULL, 10, &BuzzerTaskHandler, 0);
 #endif
 
 #if defined(USE_WIFI) or defined(USE_OTA)
@@ -73,8 +75,6 @@ void setup()
 #if defined(USE_OTA)
     config_ota();
 #endif
-
-    xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 2048, NULL, 10, &BuzzerTaskHandler, 0);
 }
 
 unsigned long last_loop_time = millis();
