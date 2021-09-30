@@ -30,6 +30,7 @@
 #define AXP192
 // #define AXP20X
 // #define SYSCACHE_LOG_ENABLED
+// #define DISABLE_WATCH_DOG
 
 // -----------------------------------------------------------------------------
 // OLED

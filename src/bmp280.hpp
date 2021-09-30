@@ -5,6 +5,7 @@
 #include <config.hpp>
 #include <cache_global.hpp>
 #include <list>
+#include <queue.hpp>
 
 Adafruit_BMP280 bmp280;
 

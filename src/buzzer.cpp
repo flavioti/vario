@@ -1,5 +1,8 @@
 #include <Tone32.h>
 #include <map>
+#include <queue.hpp>
+#include <Arduino.h>
+#include "FreeRTOS.h"
 
 #define BUZZER_PIN 15
 #define BUZZER_CHANNEL 0
@@ -17,44 +20,6 @@ void StopPlaying()
 {
     noTone(BUZZER_PIN, BUZZER_CHANNEL);
 }
-
-void test_vario()
-{
-    Serial.printf("Task1 running on core %i", xPortGetCoreID());
-    // play(200, 2000);
-    // play(202, 2000);
-    // play(204, 2000);
-    // play(206, 2000);
-    // play(210, 2000);
-    // play(214, 2000);
-    // play(220, 2000);
-    // play(225, 2000);
-    // play(235, 1950);
-    // play(242, 1800);
-    // play(250, 1400);
-    play(1600, 95);
-}
-
-void play_melody()
-{
-    tone(BUZZER_PIN, NOTE_C4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_D4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_E4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_F4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_G4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_A4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    tone(BUZZER_PIN, NOTE_B4, 500, BUZZER_CHANNEL);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-}
-
-#define tone_out1 8
-#define tone_out2 9
 
 void play_welcome_beep(void *pvParameters)
 {
@@ -97,20 +62,39 @@ std::vector<short> vFrequency = {200, 202, 204, 206, 210, 214, 220, 225, 230, 23
 std::vector<short> vLength = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 std::vector<short> vPause = {100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100, 100};
 
-void play_vario_beep(float vario)
+void buzzer_task(void *pvParameters)
 {
-    Serial.println(vario);
-    if (vario <= -0.5 || vario >= 0.5)
+    while (1)
     {
-        for (int i = 0; i < vVariation.size(); i++)
+        if (xQueueIsQueueEmptyFromISR(xQueueVario))
         {
-            float range1 = vVariation[i];
-            float range2 = vVariation[i + 1];
-            if (vario > range1 && vario < range2)
+            // Serial.printf("CORE %i buzzer_task | nothig to do, queue is empty\n", xPortGetCoreID());
+            vTaskDelay(100 / portTICK_PERIOD_MS);
+            continue;
+        }
+
+        float vario;
+        xQueueReceive(xQueueVario, &vario, 0);
+
+        // Serial.printf("CORE %i buzzer_task | vario: %f\n", xPortGetCoreID(), vario);
+
+        if (vario <= -0.5 || vario >= 0.5)
+        {
+            for (int i = 0; i < vVariation.size(); i++)
             {
-                play(vFrequency[i], vLength[i], vPause[i]);
-                break;
+                float range1 = vVariation[i];
+                float range2 = vVariation[i + 1];
+                if (vario > range1 && vario < range2)
+                {
+                    play(vFrequency[i], vLength[i]);
+                    vTaskDelay(vPause[i] / portTICK_PERIOD_MS);
+                    break;
+                }
             }
+        }
+        else
+        {
+            vTaskDelay(100 / portTICK_PERIOD_MS);
         }
     }
 }

@@ -1,6 +1,7 @@
 #include <Arduino.h>
 #include <config.hpp>
 #include <cache_global.hpp>
+#include <queue.hpp>
 
 // https://github.com/JoepSchyns/Low_power_TTGO_T-beam/tree/master/low_power
 // https://github.com/JoepSchyns/Low_power_TTGO_T-beam/commit/8d2845051f3c24c58540f762110396d6d8d439a0
@@ -28,19 +29,16 @@
 #include <network.hpp>
 #endif
 
-void Task1code(void *pvParameters)
-{
-    for (;;)
-    {
-        Serial.print("Task1 running on core ");
-        Serial.println(xPortGetCoreID());
-
-        test_vario();
-    }
-}
+TaskHandle_t BuzzerTaskHandler;
 
 void setup()
 {
+
+#if defined(DISABLE_WATCH_DOG)
+    disableCore0WDT();
+    disableCore1WDT();
+#endif
+
     sleep(2);
     Serial.begin(9600);
     while (!Serial)
@@ -75,9 +73,12 @@ void setup()
 #if defined(USE_OTA)
     config_ota();
 #endif
+
+    xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 2048, NULL, 10, &BuzzerTaskHandler, 0);
 }
 
 unsigned long last_loop_time = millis();
+float last_vario_value = 0.0;
 
 void loop()
 {
@@ -93,9 +94,12 @@ void loop()
 #endif
 
 #if defined(USE_BMP280)
-        // begin_read_bmp280_task();
-        // loop_bmp280();
         loop_bmp280_by_time();
+        if (last_vario_value != baro_cache.vario)
+        {
+            last_vario_value = baro_cache.vario;
+            xQueueSend(xQueueVario, &baro_cache.vario, 0);
+        }
 #endif
 
 #if defined(USE_SCREEN)
@@ -109,6 +113,6 @@ void loop()
 #if defined(USE_OTA)
         handle_client();
 #endif
-        play_vario_beep(baro_cache.vario);
+        // Serial.printf("CODE %i end main loop\n", xPortGetCoreID());
     }
 }
