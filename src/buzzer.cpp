@@ -9,11 +9,9 @@
 
 // https://vps.skybean.eu/configurator/#/audio_profile
 
-void play(int frequency, int duration, short pause = 0)
+void play(int frequency, int duration)
 {
-    Serial.printf("play %i %i %i\n", frequency, duration, pause);
     tone(BUZZER_PIN, frequency, duration, BUZZER_CHANNEL);
-    delay(pause);
 }
 
 void StopPlaying()
@@ -36,32 +34,29 @@ void buzzer_task(void *pvParameters)
 {
     while (1)
     {
-        if (xQueueIsQueueEmptyFromISR(xQueueVario))
-        {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
-            continue;
-        }
-
         float vario;
-        xQueueReceive(xQueueVario, &vario, 0);
-
-        if (vario <= -0.5 || vario >= 0.5)
+        if (xQueueReceive(xQueueVario, &vario, 0) == pdTRUE)
         {
-            for (int i = 0; i < vVariation.size(); i++)
+            if (vario <= -0.5 || vario >= 0.5)
             {
-                float range1 = vVariation[i];
-                float range2 = vVariation[i + 1];
-                if (vario > range1 && vario < range2)
+                for (int i = 0; i < vVariation.size(); i++)
                 {
-                    play(vFrequency[i], vLength[i]);
-                    vTaskDelay(vPause[i] / portTICK_PERIOD_MS);
-                    break;
+                    float range1 = vVariation[i];
+                    float range2 = vVariation[i + 1];
+                    if (vario > range1 && vario < range2)
+                    {
+                        Serial.printf("vario %f play F %i L %i P %i\n", vario, vFrequency[i], vLength[i], vPause[i]);
+                        play(vFrequency[i], vLength[i]);
+                        vTaskDelay(vPause[i] / portTICK_PERIOD_MS);
+                        break;
+                    }
                 }
             }
         }
         else
         {
-            vTaskDelay(100 / portTICK_PERIOD_MS);
+            // Watchdog reclama se rodar rapido demais
+            vTaskDelay(1 / portTICK_PERIOD_MS);
         }
     }
 }

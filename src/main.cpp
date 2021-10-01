@@ -78,12 +78,11 @@ void setup()
 }
 
 unsigned long last_loop_time = millis();
-float last_vario_value = 0.0;
 
 void loop()
 {
     sys_cache.loop_millis = millis() - last_loop_time;
-    if (sys_cache.loop_millis > 10) // 500ms
+    if (sys_cache.loop_millis > 10)
     {
         last_loop_time = millis();
         sys_cache.loop_counter++;
@@ -95,11 +94,6 @@ void loop()
 
 #if defined(USE_BMP280)
         loop_bmp280_by_time();
-        if (last_vario_value != baro_cache.vario)
-        {
-            last_vario_value = baro_cache.vario;
-            xQueueSend(xQueueVario, &baro_cache.vario, 0);
-        }
 #endif
 
 #if defined(USE_SCREEN)

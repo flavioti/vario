@@ -13,6 +13,8 @@ void connect_wifi2()
     Serial.println("Disconnecting WiFi");
     WiFi.disconnect();
 
+    Serial.printf("WiFi mode: %i\n", WiFi.getMode());
+
     Serial.print("Connecting to WiFi");
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 
@@ -183,6 +185,7 @@ String getMetrics()
     setMetric(&p, "esp32_baro_altitude", String(baro_cache.altitude, 1));
     setMetric(&p, "esp32_baro_reads", String(baro_cache.reads));
     setMetric(&p, "esp32_baro_sample_count", String(baro_cache.sample_count));
+    setMetric(&p, "esp32_baro_failed_sample_count", String(baro_cache.failed_sample_count));
     setMetric(&p, "esp32_baro_vario", String(baro_cache.vario, 6));
 
     setMetric(&p, "esp32_geo_altitude", String(geo_cache.altitude, 1));

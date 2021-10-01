@@ -68,9 +68,6 @@
 // #define VARIO_BMP280_LOG_ENABLED
 #define VARIO_BMP280_I2C_ADDRESS 0x76
 #define VARIO_BMP280_SAMPLES 5
-// Task
-#define VARIO_BMP280_TASK_INTERVAL_MS 5000
-#define VARIO_BMP280_TASK_CORE 2
 #endif
 
 // -----------------------------------------------------------------------------

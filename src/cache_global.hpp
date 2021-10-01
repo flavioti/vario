@@ -11,6 +11,7 @@ struct barometer_cache
     float altitude_sample = 0;
     unsigned long reads = 0;
     unsigned short sample_count = 0;
+    unsigned short failed_sample_count = 0;
     float vario = 0;
 };
 
@@ -35,7 +36,7 @@ struct system_cache
     float esp32_ts_temperature = 0;
     unsigned long uptime = 0;
     unsigned short power_down_voltage = 0;
-    unsigned long loop_millis = millis();
+    unsigned long loop_millis = 0;
 };
 
 system_cache sys_cache;
