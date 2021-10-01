@@ -71,26 +71,41 @@
 #endif
 
 // -----------------------------------------------------------------------------
+// VARIO
+// -----------------------------------------------------------------------------
+
+#define VARIO_SINK_THRESHOLD_SINK -0.5 // default -2.4 ms/s
+#define VARIO_SINK_THRESHOLD_LIFT 0.4  // default 0.2 ms/s
+
+// -----------------------------------------------------------------------------
 // BUZZER
 // -----------------------------------------------------------------------------
 
 #define USE_BUZZER
 
+#if defined(USE_BUZZER)
+#define VARIO_BUZZER_LOG_ENABLED
+#endif
+
+// #define VARIO_BMP280_LOG_ENABLED
+
 // -----------------------------------------------------------------------------
-// OTA
+// WEBSERVER
 // -----------------------------------------------------------------------------
 
-#define USE_OTA
+#if defined(USE_WIFI)
+#define USE_WEBSERVER
 
-#if defined(USE_OTA)
+#if defined(USE_WEBSERVER)
 #define RESTART_IF_MDNS_FAIL // Reinicia o ESP32 se o MDNS falhar
+#endif
 #endif
 
 // -----------------------------------------------------------------------------
 // WIFI
 // -----------------------------------------------------------------------------
 
-// #define USE_WIFI
+#define USE_WIFI
 
 // -----------------------------------------------------------------------------
 // POST METRICS

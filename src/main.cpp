@@ -25,7 +25,7 @@
 
 #include <energia.hpp>
 
-#if defined(USE_WIFI) or defined(USE_OTA)
+#if defined(USE_WIFI) or defined(USE_WEBSERVER)
 #include <network.hpp>
 #endif
 
@@ -55,7 +55,7 @@ void setup()
     xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 2048, NULL, 10, &BuzzerTaskHandler, 0);
 #endif
 
-#if defined(USE_WIFI) or defined(USE_OTA)
+#if defined(USE_WIFI) or defined(USE_WEBSERVER)
     connect_wifi2();
 #endif
 
@@ -72,7 +72,7 @@ void setup()
     init_bmp280();
 #endif
 
-#if defined(USE_OTA)
+#if defined(USE_WEBSERVER)
     config_ota();
 #endif
 }
@@ -104,7 +104,7 @@ void loop()
         send_metrics();
 #endif
 
-#if defined(USE_OTA)
+#if defined(USE_WEBSERVER)
         handle_client();
 #endif
         // Serial.printf("CODE %i end main loop\n", xPortGetCoreID());
