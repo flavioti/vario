@@ -21,6 +21,8 @@
 #define TTGO_V2_OLED_PIN_RST U8X8_PIN_NONE // connected to CPU RST/EN
 #define TTGO_V2_OLED_PIN_SDA 21
 #define TTGO_V2_OLED_PIN_SCL 22
+#define I2C_SDA 21
+#define I2C_SCL 22
 #endif
 
 // -----------------------------------------------------------------------------
@@ -31,6 +33,8 @@
 // #define AXP20X
 // #define SYSCACHE_LOG_ENABLED
 // #define DISABLE_WATCH_DOG
+#define CORE_0 0
+#define CORE_1 1
 
 // -----------------------------------------------------------------------------
 // OLED
@@ -52,10 +56,6 @@
 #define GPS_SERIAL_NUM 1
 #define GPS_BAUDRATE 9600
 // #define GPS_LOG_ENABLED
-#define I2C_SDA 21
-#define I2C_SCL 22
-#define GPS_RX_PIN 34
-#define GPS_TX_PIN 12
 #endif
 
 // -----------------------------------------------------------------------------
@@ -74,7 +74,7 @@
 // VARIO
 // -----------------------------------------------------------------------------
 
-#define VARIO_SINK_THRESHOLD_SINK -0.5 // default -2.4 ms/s
+#define VARIO_SINK_THRESHOLD_SINK -2.4 // default -2.4 ms/s
 #define VARIO_SINK_THRESHOLD_LIFT 0.4  // default 0.2 ms/s
 
 // -----------------------------------------------------------------------------
@@ -84,10 +84,9 @@
 #define USE_BUZZER
 
 #if defined(USE_BUZZER)
+#define BUZZER_PIN 15
 #define VARIO_BUZZER_LOG_ENABLED
 #endif
-
-// #define VARIO_BMP280_LOG_ENABLED
 
 // -----------------------------------------------------------------------------
 // WEBSERVER
@@ -108,12 +107,13 @@
 #define USE_WIFI
 
 // -----------------------------------------------------------------------------
-// POST METRICS
+// TELEMETRY
 // -----------------------------------------------------------------------------
 
-// #define USE_POST_METRICS
+#define CAPTURE_CORE_STATUS
 
-#if defined(USE_POST_METRICS)
-#define USE_WIFI
-#define METRICS_URL "http://192.168.99.14:8080/"
-#endif
+// -----------------------------------------------------------------------------
+// MPU 6050
+// -----------------------------------------------------------------------------
+
+// #define USE_MPU6050

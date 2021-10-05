@@ -2,9 +2,13 @@
 #include <config.hpp>
 #include <cache_global.hpp>
 #include <queue.hpp>
+#include <FreeRTOS.h>
+#include <mpu6050.hpp>
+#include <esp32-hal-i2c.h>
 
 // https://github.com/JoepSchyns/Low_power_TTGO_T-beam/tree/master/low_power
 // https://github.com/JoepSchyns/Low_power_TTGO_T-beam/commit/8d2845051f3c24c58540f762110396d6d8d439a0
+// https://docs.espressif.com/projects/esp-idf/en/latest/esp32/get-started/index.html
 
 #if defined(USE_SCREEN)
 #include <screen.hpp>
@@ -29,11 +33,16 @@
 #include <network.hpp>
 #endif
 
+#if defined(USE_BUZZER)
 TaskHandle_t BuzzerTaskHandler;
+#endif
+
 TaskHandle_t WelcomeTaskHandler;
+TaskHandle_t MPUTaskHandler;
 
 void setup()
 {
+    esp_log_level_set("*", ESP_LOG_VERBOSE);
 
 #if defined(DISABLE_WATCH_DOG)
     disableCore0WDT();
@@ -44,18 +53,27 @@ void setup()
     Serial.begin(9600);
     while (!Serial)
         ;
-    Serial.println("iniciando");
+    ESP_LOGI(&TAG, "iniciando");
 
     configure_system();
-    print_sys_diagnostic();
+    // print_sys_diagnostic();
+
+#if defined(CAPTURE_CORE_STATUS)
     cache_core_status();
+#endif
+
+#if defined(USE_MPU6050)
+    setup_mpu6050();
+    xTaskCreatePinnedToCore(loop_mpu6050, "loop_mpu6050", 10000, NULL, 1, &MPUTaskHandler, CORE_1);
+#endif
 
 #if defined(USE_BUZZER)
-    xTaskCreatePinnedToCore(play_welcome_beep, "play_welcome_beep", 10000, NULL, 1, &WelcomeTaskHandler, 1);
-    xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 2048, NULL, 10, &BuzzerTaskHandler, 0);
+    xTaskCreatePinnedToCore(play_welcome_beep, "play_welcome_beep", 10000, NULL, 1, &WelcomeTaskHandler, CORE_1);
+    xTaskCreatePinnedToCore(buzzer_task, "buzzer_task_core_0", 10000, NULL, 10, &BuzzerTaskHandler, CORE_1);
 #endif
 
 #if defined(USE_WIFI) or defined(USE_WEBSERVER)
+    // setup_network();
     connect_wifi2();
 #endif
 
@@ -64,7 +82,6 @@ void setup()
 #endif
 
 #if defined(USE_GPS)
-    Serial.println("USE_GPS");
     setup_g();
 #endif
 
@@ -78,6 +95,7 @@ void setup()
 }
 
 unsigned long last_loop_time = millis();
+unsigned long screen_millis = millis();
 
 void loop()
 {
@@ -86,27 +104,54 @@ void loop()
     {
         last_loop_time = millis();
         sys_cache.loop_counter++;
+
+#if defined(CAPTURE_CORE_STATUS)
+        unsigned long core_status_millis = millis();
         cache_core_status();
+        sys_cache.core_status_millis = millis() - core_status_millis;
+#endif
 
 #if defined(USE_GPS)
+        unsigned long gps_millis = millis();
         loop_g();
+        sys_cache.gps_millis = millis() - gps_millis;
 #endif
 
 #if defined(USE_BMP280)
+        unsigned long baro_millis = millis();
         loop_bmp280_by_time();
-#endif
-
-#if defined(USE_SCREEN)
-        update_screen_a();
-#endif
-
-#if defined(USE_POST_METRICS) and defined(USE_WIFI)
-        send_metrics();
+        sys_cache.baro_millis = millis() - baro_millis;
 #endif
 
 #if defined(USE_WEBSERVER)
+        unsigned long handle_client_time = millis();
         handle_client();
+        sys_cache.handle_client_millis = millis() - handle_client_time;
 #endif
-        // Serial.printf("CODE %i end main loop\n", xPortGetCoreID());
     }
+
+    // Converter para task de baixa prioridade no core 1
+
+#if defined(USE_SCREEN)
+    if (sys_cache.screen_millis > 500)
+    {
+        update_screen_a();
+        sys_cache.screen_millis = millis() - screen_millis;
+    }
+#endif
+
+    struct ENCODER_Motion *ENCODER_Received;
+
+    if (xQueueReceive(xQueueMPU6050Metrics, &(ENCODER_Received), 0))
+    {
+        mpu_cache.temp = ENCODER_Received->temp;
+        mpu_cache.ax = ENCODER_Received->ax;
+        mpu_cache.ay = ENCODER_Received->ay;
+        mpu_cache.az = ENCODER_Received->az;
+        mpu_cache.gx = ENCODER_Received->gx;
+        mpu_cache.gy = ENCODER_Received->gy;
+        mpu_cache.gz = ENCODER_Received->gz;
+    }
+
+    sys_cache.loop_millis = millis() - last_loop_time;
 }

@@ -1,4 +1,3 @@
-#include <Tone32.h>
 #include <map>
 #include <queue.hpp>
 #include <Arduino.h>
@@ -10,19 +9,29 @@
 
 // https://vps.skybean.eu/configurator/#/audio_profile
 
-void play(int frequency, int duration)
+void tone(uint8_t pin, unsigned int frequency, uint8_t channel)
 {
-    tone(BUZZER_PIN, frequency, duration, BUZZER_CHANNEL);
+    if (ledcRead(channel))
+    {
+        log_e("Tone channel %d is already in use", ledcRead(channel));
+        return;
+    }
+    ledcAttachPin(pin, channel);
+    ledcWriteTone(channel, frequency);
 }
 
-void StopPlaying()
+void noTone(uint8_t pin, uint8_t channel)
 {
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
+    ledcDetachPin(pin);
+    ledcWrite(channel, 0);
 }
 
 void play_welcome_beep(void *pvParameters)
 {
-    play(1600, 95);
+    ESP_LOGI(&TAG, "play_welcome_beep running");
+    tone(BUZZER_PIN, 1600, BUZZER_CHANNEL);
+    delay(95);
+    noTone(BUZZER_PIN, BUZZER_CHANNEL);
     vTaskDelete(NULL);
 }
 
@@ -33,10 +42,15 @@ std::vector<short> vPause = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 200, 600, 1
 
 void buzzer_task(void *pvParameters)
 {
+    int duracao = millis();
+    int pause = 0;
+    bool buzzer_ativo = false;
     while (1)
     {
         float vario;
-        if (xQueueReceive(xQueueVario, &vario, 0) == pdTRUE)
+        if ((xQueueVario) and
+            (!xQueueIsQueueEmptyFromISR(xQueueVario)) and
+            (xQueueReceive(xQueueVario, &vario, 0) == pdTRUE))
         {
             if (vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT)
             {
@@ -47,16 +61,40 @@ void buzzer_task(void *pvParameters)
                     if (vario > range1 && vario < range2)
                     {
 #if defined(VARIO_BUZZER_LOG_ENABLED)
-                        Serial.printf("vario %f play F %i L %i P %i\n", vario, vFrequency[i], vLength[i], vPause[i]);
+                        Serial.printf("vario %f play F %i L %i P %i CORE %i\n", vario, vFrequency[i], vLength[i], vPause[i], xPortGetCoreID());
 #endif
-                        play(vFrequency[i], vLength[i]);
-                        vTaskDelay(vPause[i] / portTICK_PERIOD_MS);
-                        break;
+                        // Tempo mínimo de 10 ms caso tenha algum tom tocando
+                        if (buzzer_ativo)
+                        {
+                            vTaskDelay(100);
+                        }
+                        noTone(BUZZER_PIN, BUZZER_CHANNEL);
+                        // Tempo para poder ouvir a transição entre as notas (caso tenha alguma ativa)
+                        if (buzzer_ativo)
+                        {
+                            vTaskDelay(100);
+                        }
+                        // Toca ou muda o tom atual
+                        tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
+                        // Espera o tempo de duração do tom
+                        duracao = millis() + vLength[i];
+                        // Duração da pausa caso o tom não seja alterado
+                        // dentro do período de tempo (duracao)
+                        pause = vPause[i];
+                        buzzer_ativo = true;
                     }
                 }
             }
         }
-        // Watchdog reclama se rodar rapido demais
-        vTaskDelay(1 / portTICK_PERIOD_MS);
+        if (buzzer_ativo and (millis() > duracao))
+        {
+            Serial.println("vario buzzer stop");
+            buzzer_ativo = false;
+            noTone(BUZZER_PIN, BUZZER_CHANNEL);
+            // Aplica pause do último tone executado
+            Serial.printf("vario buzzer pause %i\n", pause);
+            vTaskDelay(pause);
+        }
+        vTaskDelay(1);
     }
 }

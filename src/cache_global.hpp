@@ -7,11 +7,7 @@ struct barometer_cache
     float temperature = 0;
     float pressure = 0;
     float altitude = 0;
-    float altitude_raw = 0;
     float altitude_sample = 0;
-    unsigned long reads = 0;
-    unsigned short sample_count = 0;
-    unsigned short failed_sample_count = 0;
     float vario = 0;
 };
 
@@ -37,8 +33,26 @@ struct system_cache
     unsigned long uptime = 0;
     unsigned short power_down_voltage = 0;
     unsigned long loop_millis = 0;
+    unsigned long core_status_millis = 0;
+    unsigned long gps_millis = 0;
+    unsigned long baro_millis = 0;
+    unsigned long screen_millis = 0;
+    unsigned long handle_client_millis = 0;
 };
 
 system_cache sys_cache;
+
+struct MPU_cache
+{
+    float temp = 0;
+    float ax = 0;
+    float ay = 0;
+    float az = 0;
+    float gx = 0;
+    float gy = 0;
+    float gz = 0;
+};
+
+MPU_cache mpu_cache;
 
 #endif

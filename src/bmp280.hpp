@@ -27,7 +27,6 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
 {
     // A leitura do BMP280 em thread está causando kernel panic
 
-    baro_cache.reads++;
     std::list<float> altitude_sample = {};
     std::list<float> temp_sample = {};
     std::list<float> pressure_sample = {};
@@ -61,10 +60,7 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
 
     baro_cache.temperature = std::accumulate(temp_sample.begin(), temp_sample.end(), 0.0) / temp_sample.size();
     baro_cache.pressure = std::accumulate(pressure_sample.begin(), pressure_sample.end(), 0.0) / pressure_sample.size();
-    baro_cache.altitude_raw = bmp280.readPressure() / 100;
     baro_cache.altitude_sample = std::accumulate(altitude_sample.begin(), altitude_sample.end(), 0.0) / altitude_sample.size();
-    baro_cache.sample_count = sample_count;
-    baro_cache.failed_sample_count = failed_sample_count;
 
     // Média das últimas leituras (somente altitude)
     if (altitude_avg.size() >= VARIO_BMP280_SAMPLES)
@@ -83,9 +79,28 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
     vario_avg.push_back(baro_cache.altitude_sample);
     float last_vario_avg = std::accumulate(vario_avg.begin(), vario_avg.end(), 0.0) / vario_avg.size();
 
-    baro_cache.vario = baro_cache.altitude_sample - last_vario_avg;
+    float vario = baro_cache.altitude_sample - last_vario_avg;
+    if ((vario > 10) or (vario < -10))
+    {
+        vario = 0;
+    }
+    baro_cache.vario = vario;
 
-    xQueueSend(xQueueVario, &baro_cache.vario, (TickType_t)0);
+    try
+    {
+        if (!xQueueIsQueueFullFromISR(xQueueVario))
+        {
+            xQueueSendToBack(xQueueVario, &vario, 10);
+        }
+        // else
+        // {
+        //     Serial.println("xQueueVario is full");
+        // }
+    }
+    catch (const std::exception &e)
+    {
+        Serial.println(e.what());
+    }
 
 #ifdef VARIO_BMP280_LOG_ENABLED
     Serial.printf("BRE = %lu ", baro_cache.reads);
