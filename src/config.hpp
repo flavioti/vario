@@ -78,8 +78,8 @@
 #define VARIO_SINK_THRESHOLD_LIFT 0.1  // default 0.2 ms/s
 
 // Valores para considerar que o dispositivo está em movimento
-#define VARIO_ACCEL_Z_THRESHOLD_SINK -70
-#define VARIO_ACCEL_Z_THRESHOLD_LIFT 70
+#define VARIO_ACCEL_Z_THRESHOLD_SINK -300
+#define VARIO_ACCEL_Z_THRESHOLD_LIFT 300
 
 // Valores minimos e maximos para o sensor de aceleracao a serem enviados para fila
 // O valor deve ser sempre menor que o valor de sink e lift

@@ -126,8 +126,6 @@ void loop()
         sys_cache.baro_millis = millis() - baro_millis;
 #endif
 
-        // Converter para task de baixa prioridade no core 1
-
 #if defined(USE_SCREEN)
         unsigned long screen_millis = millis();
         update_screen_a();
