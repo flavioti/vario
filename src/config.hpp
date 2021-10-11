@@ -75,7 +75,16 @@
 // -----------------------------------------------------------------------------
 
 #define VARIO_SINK_THRESHOLD_SINK -2.4 // default -2.4 ms/s
-#define VARIO_SINK_THRESHOLD_LIFT 0.4  // default 0.2 ms/s
+#define VARIO_SINK_THRESHOLD_LIFT 0.1  // default 0.2 ms/s
+
+// Valores para considerar que o dispositivo está em movimento
+#define VARIO_ACCEL_Z_THRESHOLD_SINK -70
+#define VARIO_ACCEL_Z_THRESHOLD_LIFT 70
+
+// Valores minimos e maximos para o sensor de aceleracao a serem enviados para fila
+// O valor deve ser sempre menor que o valor de sink e lift
+#define MIN_ACCEL_Z -20
+#define MAX_ACCEL_Z 20
 
 // -----------------------------------------------------------------------------
 // BUZZER
@@ -116,4 +125,4 @@
 // MPU 6050
 // -----------------------------------------------------------------------------
 
-// #define USE_MPU6050
+#define USE_MPU6050

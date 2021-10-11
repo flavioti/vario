@@ -37,6 +37,7 @@ struct system_cache
     unsigned long gps_millis = 0;
     unsigned long baro_millis = 0;
     unsigned long screen_millis = 0;
+    unsigned long mpu6050_millis = 0;
     unsigned long handle_client_millis = 0;
 };
 
@@ -45,12 +46,13 @@ system_cache sys_cache;
 struct MPU_cache
 {
     float temp = 0;
-    float ax = 0;
-    float ay = 0;
-    float az = 0;
-    float gx = 0;
-    float gy = 0;
-    float gz = 0;
+    int16_t ax = 0;
+    int16_t ay = 0;
+    int16_t az = 0;
+    int16_t gx = 0;
+    int16_t gy = 0;
+    int16_t gz = 0;
+    int16_t delta_z = 0;
 };
 
 MPU_cache mpu_cache;

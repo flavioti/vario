@@ -6,12 +6,13 @@
 struct ENCODER_Motion
 {
     float temp;
-    float ax;
-    float ay;
-    float az;
-    float gx;
-    float gy;
-    float gz;
+    int16_t ax;
+    int16_t ay;
+    int16_t az;
+    int16_t gx;
+    int16_t gy;
+    int16_t gz;
+    int16_t delta_z;
 };
 
 #endif
@@ -21,6 +22,6 @@ extern QueueHandle_t xQueueVario;
 // Fila de dados barométricos a serem enviadas ao data hub
 extern QueueHandle_t xQueueIngressBarometricData;
 
-extern QueueHandle_t xQueueMPU6050;
+extern QueueHandle_t xQueueBuzzerDeltaAZ;
 
 extern QueueHandle_t xQueueMPU6050Metrics;

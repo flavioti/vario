@@ -44,15 +44,23 @@ void buzzer_task(void *pvParameters)
 {
     int duracao = millis();
     int pause = 0;
-    bool buzzer_ativo = false;
+    bool buzzer_buzy = false;
+
+    float last_delta_z = 0; // variação mais recente do eixo Z
     while (1)
     {
+        xQueueReceive(xQueueBuzzerDeltaAZ, &last_delta_z, 0);
+
         float vario;
-        if ((xQueueVario) and
-            (!xQueueIsQueueEmptyFromISR(xQueueVario)) and
-            (xQueueReceive(xQueueVario, &vario, 0) == pdTRUE))
+        if (xQueueReceive(xQueueVario, &vario, 0))
         {
-            if (vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT)
+            Serial.println("VARIO\tDELTA_Z");
+            Serial.printf("%.3f\t%.3f\n", vario, last_delta_z);
+
+            if ((vario <= VARIO_SINK_THRESHOLD_SINK ||
+                 vario >= VARIO_SINK_THRESHOLD_LIFT) and
+                (last_delta_z <= VARIO_ACCEL_Z_THRESHOLD_SINK ||
+                 last_delta_z >= VARIO_ACCEL_Z_THRESHOLD_LIFT))
             {
                 for (int i = 0; i < vVariation.size(); i++)
                 {
@@ -60,39 +68,26 @@ void buzzer_task(void *pvParameters)
                     float range2 = vVariation[i + 1];
                     if (vario > range1 && vario < range2)
                     {
-#if defined(VARIO_BUZZER_LOG_ENABLED)
-                        Serial.printf("vario %f play F %i L %i P %i CORE %i\n", vario, vFrequency[i], vLength[i], vPause[i], xPortGetCoreID());
-#endif
-                        // Tempo mínimo de 10 ms caso tenha algum tom tocando
-                        if (buzzer_ativo)
+                        if (!buzzer_buzy)
                         {
-                            vTaskDelay(100);
+                            buzzer_buzy = true;
+                            Serial.println("VARIO\tDELTA_Z\tFREQ\tDURACAO\tPAUSA\tCORE");
+                            Serial.printf("%.3f\t%.3f\t%i\t%i\t%i\t%i\n",
+                                          vario, last_delta_z, vFrequency[i], vLength[i], vPause[i], xPortGetCoreID());
+                            noTone(BUZZER_PIN, BUZZER_CHANNEL);
+                            tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
+                            duracao = millis() + vLength[i];
+                            pause = vPause[i];
                         }
-                        noTone(BUZZER_PIN, BUZZER_CHANNEL);
-                        // Tempo para poder ouvir a transição entre as notas (caso tenha alguma ativa)
-                        if (buzzer_ativo)
-                        {
-                            vTaskDelay(100);
-                        }
-                        // Toca ou muda o tom atual
-                        tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
-                        // Espera o tempo de duração do tom
-                        duracao = millis() + vLength[i];
-                        // Duração da pausa caso o tom não seja alterado
-                        // dentro do período de tempo (duracao)
-                        pause = vPause[i];
-                        buzzer_ativo = true;
                     }
                 }
             }
         }
-        if (buzzer_ativo and (millis() > duracao))
+
+        if (buzzer_buzy and (millis() > duracao))
         {
-            Serial.println("vario buzzer stop");
-            buzzer_ativo = false;
+            buzzer_buzy = false;
             noTone(BUZZER_PIN, BUZZER_CHANNEL);
-            // Aplica pause do último tone executado
-            Serial.printf("vario buzzer pause %i\n", pause);
             vTaskDelay(pause);
         }
         vTaskDelay(1);

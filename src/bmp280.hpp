@@ -86,20 +86,9 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
     }
     baro_cache.vario = vario;
 
-    try
+    if (vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT)
     {
-        if (!xQueueIsQueueFullFromISR(xQueueVario))
-        {
-            xQueueSendToBack(xQueueVario, &vario, 10);
-        }
-        // else
-        // {
-        //     Serial.println("xQueueVario is full");
-        // }
-    }
-    catch (const std::exception &e)
-    {
-        Serial.println(e.what());
+        xQueueSendToBack(xQueueVario, &vario, 10);
     }
 
 #ifdef VARIO_BMP280_LOG_ENABLED

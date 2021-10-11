@@ -157,13 +157,14 @@ String getMetrics()
     setMetric(&p, "esp32_geo_longitude", String(geo_cache.longitude, 6));
     setMetric(&p, "esp32_geo_satellites", String(geo_cache.satellites));
 
-    setMetric(&p, "esp32_mpu_temp", String(mpu_cache.temp, 3));
-    setMetric(&p, "esp32_mpu_gx", String(mpu_cache.gx, 3));
-    setMetric(&p, "esp32_mpu_gy", String(mpu_cache.gy, 3));
-    setMetric(&p, "esp32_mpu_gz", String(mpu_cache.gz, 3));
-    setMetric(&p, "esp32_mpu_ax", String(mpu_cache.ax, 3));
-    setMetric(&p, "esp32_mpu_ay", String(mpu_cache.ay, 3));
-    setMetric(&p, "esp32_mpu_az", String(mpu_cache.az, 3));
+    setMetric(&p, "esp32_mpu_temp", String(mpu_cache.temp));
+    setMetric(&p, "esp32_mpu_gx", String(mpu_cache.gx));
+    setMetric(&p, "esp32_mpu_gy", String(mpu_cache.gy));
+    setMetric(&p, "esp32_mpu_gz", String(mpu_cache.gz));
+    setMetric(&p, "esp32_mpu_ax", String(mpu_cache.ax));
+    setMetric(&p, "esp32_mpu_ay", String(mpu_cache.ay));
+    setMetric(&p, "esp32_mpu_az", String(mpu_cache.az));
+    setMetric(&p, "esp32_mpu_delta_z", String(mpu_cache.delta_z));
 
     // Example of nvs_get_stats() to get the number of used entries and free entries:
     // https: //docs.espressif.com/projects/esp-idf/en/latest/esp32/api-reference/storage/nvs_flash.html#_CPPv413nvs_get_statsPKcP11nvs_stats_t

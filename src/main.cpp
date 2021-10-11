@@ -64,7 +64,6 @@ void setup()
 
 #if defined(USE_MPU6050)
     setup_mpu6050();
-    xTaskCreatePinnedToCore(loop_mpu6050, "loop_mpu6050", 10000, NULL, 1, &MPUTaskHandler, CORE_1);
 #endif
 
 #if defined(USE_BUZZER)
@@ -94,15 +93,13 @@ void setup()
 #endif
 }
 
-unsigned long last_loop_time = millis();
-unsigned long screen_millis = millis();
+unsigned long next_loop_millis = millis();
 
 void loop()
 {
-    sys_cache.loop_millis = millis() - last_loop_time;
-    if (sys_cache.loop_millis > 10)
+    if (millis() > next_loop_millis)
     {
-        last_loop_time = millis();
+        unsigned long initial_loop_millis = millis();
         sys_cache.loop_counter++;
 
 #if defined(CAPTURE_CORE_STATUS)
@@ -117,10 +114,24 @@ void loop()
         sys_cache.gps_millis = millis() - gps_millis;
 #endif
 
+#if defined(USE_MPU6050)
+        unsigned long mpu6050_millis = millis();
+        loop_mpu6050();
+        sys_cache.mpu6050_millis = millis() - mpu6050_millis;
+#endif
+
 #if defined(USE_BMP280)
         unsigned long baro_millis = millis();
         loop_bmp280_by_time();
         sys_cache.baro_millis = millis() - baro_millis;
+#endif
+
+        // Converter para task de baixa prioridade no core 1
+
+#if defined(USE_SCREEN)
+        unsigned long screen_millis = millis();
+        update_screen_a();
+        sys_cache.screen_millis = millis() - screen_millis;
 #endif
 
 #if defined(USE_WEBSERVER)
@@ -128,20 +139,12 @@ void loop()
         handle_client();
         sys_cache.handle_client_millis = millis() - handle_client_time;
 #endif
-    }
 
-    // Converter para task de baixa prioridade no core 1
-
-#if defined(USE_SCREEN)
-    if (sys_cache.screen_millis > 500)
-    {
-        update_screen_a();
-        sys_cache.screen_millis = millis() - screen_millis;
+        next_loop_millis = millis() + 100;                      // Define proximo loop para 1 segundo
+        sys_cache.loop_millis = millis() - initial_loop_millis; // Calcula tempo de execucao do loop
     }
-#endif
 
     struct ENCODER_Motion *ENCODER_Received;
-
     if (xQueueReceive(xQueueMPU6050Metrics, &(ENCODER_Received), 0))
     {
         mpu_cache.temp = ENCODER_Received->temp;
@@ -151,7 +154,6 @@ void loop()
         mpu_cache.gx = ENCODER_Received->gx;
         mpu_cache.gy = ENCODER_Received->gy;
         mpu_cache.gz = ENCODER_Received->gz;
+        mpu_cache.delta_z = ENCODER_Received->delta_z;
     }
-
-    sys_cache.loop_millis = millis() - last_loop_time;
 }
