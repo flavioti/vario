@@ -1,7 +1,7 @@
 #include "I2Cdev.h"
 #include "MPU6050.h"
-#include <config.hpp>
-#include <queue.hpp>
+#include <flight_companion/config.hpp>
+#include <flight_companion/queue.hpp>
 #include "Wire.h"
 #include <list>
 
@@ -16,19 +16,15 @@ void setup_mpu6050()
     Serial.println("MPU6050 Testing device connections");
     if (accelgyro.testConnection())
     {
-
         accelgyro.setDMPEnabled(true);
+        accelgyro.setTempSensorEnabled(false);
 
         Serial.println("MPU6050 connection status...............: OK");
-        Serial.printf("MPU6050 DMP enabled.....................: %i\n", accelgyro.getDMPEnabled());
-        Serial.printf("MPU6050 temp sensor enabled.............: %i\n", accelgyro.getTempSensorEnabled());
 
-        Serial.print("Calibrating gyro and accel ");
-        accelgyro.CalibrateAccel(7);
-        accelgyro.CalibrateGyro(7);
-        Serial.println("\ndone!");
+        accelgyro.CalibrateAccel();
+        accelgyro.CalibrateGyro();
 
-        accelgyro.PrintActiveOffsets();
+        Serial.println("\nMPU6050 Calibration status...............: OK");
     }
     else
     {

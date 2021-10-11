@@ -1,7 +1,6 @@
 #ifndef CACHE_H_INCLUDED
 #define CACHE_H_INCLUDED
 
-// RTC_DATA_ATTR guarda dados durante deep sleep
 struct barometer_cache
 {
     float temperature = 0;
@@ -25,20 +24,12 @@ geolocalization_cache geo_cache;
 
 struct system_cache
 {
-    int loop_counter = 0;
     float battery_voltage = 0;
     int battery_percentage = 0;
     float esp32_temperature = 0;
     float esp32_ts_temperature = 0;
     unsigned long uptime = 0;
     unsigned short power_down_voltage = 0;
-    unsigned long loop_millis = 0;
-    unsigned long core_status_millis = 0;
-    unsigned long gps_millis = 0;
-    unsigned long baro_millis = 0;
-    unsigned long screen_millis = 0;
-    unsigned long mpu6050_millis = 0;
-    unsigned long handle_client_millis = 0;
 };
 
 system_cache sys_cache;

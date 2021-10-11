@@ -1,13 +1,11 @@
 #include <map>
-#include <queue.hpp>
+#include <flight_companion/queue.hpp>
 #include <Arduino.h>
 #include "FreeRTOS.h"
-#include <config.hpp>
+#include <flight_companion/config.hpp>
 
 #define BUZZER_PIN 15
 #define BUZZER_CHANNEL 0
-
-// https://vps.skybean.eu/configurator/#/audio_profile
 
 void tone(uint8_t pin, unsigned int frequency, uint8_t channel)
 {

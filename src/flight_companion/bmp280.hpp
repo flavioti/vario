@@ -2,10 +2,10 @@
 #include <SPI.h>
 #include <Adafruit_Sensor.h>
 #include <Adafruit_BMP280.h>
-#include <config.hpp>
-#include <cache_global.hpp>
+#include <flight_companion/config.hpp>
+#include <flight_companion/cache_global.hpp>
 #include <list>
-#include <queue.hpp>
+#include <flight_companion/queue.hpp>
 
 Adafruit_BMP280 bmp280;
 
@@ -36,9 +36,6 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
     unsigned long initial_time = millis();
     while (millis() - initial_time < 10)
     {
-#ifdef VARIO_BMP280_LOG_ENABLED
-        Serial.print(".");
-#endif
         float alti = bmp280.readAltitude(1013.25);
         float temp = bmp280.readTemperature();
         float pres = bmp280.readPressure() / 100;
@@ -54,10 +51,6 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
             sample_count++;
         }
     }
-#ifdef VARIO_BMP280_LOG_ENABLED
-    Serial.println("");
-#endif
-
     baro_cache.temperature = std::accumulate(temp_sample.begin(), temp_sample.end(), 0.0) / temp_sample.size();
     baro_cache.pressure = std::accumulate(pressure_sample.begin(), pressure_sample.end(), 0.0) / pressure_sample.size();
     baro_cache.altitude_sample = std::accumulate(altitude_sample.begin(), altitude_sample.end(), 0.0) / altitude_sample.size();
@@ -90,11 +83,4 @@ void loop_bmp280_by_time(void *pvParameters = NULL)
     {
         xQueueSendToBack(xQueueVario, &vario, 10);
     }
-
-#ifdef VARIO_BMP280_LOG_ENABLED
-    Serial.printf("BRE = %lu ", baro_cache.reads);
-    Serial.printf("BTE = %f *C ", baro_cache.temperature);
-    Serial.printf("BPR = %f hPa ", baro_cache.pressure);
-    Serial.printf("BAL = %f m\n", baro_cache.altitude);
-#endif
 }

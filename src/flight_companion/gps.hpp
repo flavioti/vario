@@ -2,17 +2,19 @@
 #include <axp20x.h>
 #include <config.h>
 #include <time.h>
-#include <cache_global.hpp>
+#include <flight_companion/cache_global.hpp>
 
 TinyGPSPlus gps;
 HardwareSerial GPS(1);
 
 #include <SparkFun_Ublox_Arduino_Library.h>
+
 SFE_UBLOX_GPS myGPS;
-int state = 0; // steps through states
 HardwareSerial SerialGPS(1);
 
-void setup_g()
+int state = 0;
+
+void setup_gnss()
 {
   while (!Serial)
     ;
@@ -23,13 +25,11 @@ void setup_g()
 
 void loop_g()
 {
-  // Serial.printf("GPS::Running on core %i\n", xPortGetCoreID());
   switch (state)
   {
   case 0: // soft solution, should be sufficient and works in most (all) cases
     do
     {
-      // Serial.println("0");
       if (myGPS.begin(SerialGPS))
       {
         Serial.println("Connected to GPS");
@@ -75,7 +75,6 @@ void loop_g()
     if (myGPS.begin(SerialGPS))
     {
       Serial.println("GPS Success, gps has been reset with factory settings");
-      Serial.println();
       state++;
     }
     else
@@ -86,23 +85,14 @@ void loop_g()
     break;
 
   case 3:
-    // Iteração para coletar dados do GPS e carrega-los no tinygps
     while (SerialGPS.available())
     {
       char c = SerialGPS.read();
       gps.encode(c);
-      // Serial.write(c); // print anything comes in from the GPS
     }
     geo_cache.latitude = gps.location.lat();
     geo_cache.longitude = gps.location.lng();
     geo_cache.altitude = gps.altitude.meters();
     geo_cache.satellites = gps.satellites.value();
-
-#if defined(GPS_LOG_ENABLED)
-    Serial.printf("GLO = %f *C ", geo_cache.longitude);
-    Serial.printf("GLA = %f ", geo_cache.latitude);
-    Serial.printf("GAL = %f ", geo_cache.altitude);
-    Serial.printf("GSA = %i\n", geo_cache.satellites);
-#endif
   }
 }

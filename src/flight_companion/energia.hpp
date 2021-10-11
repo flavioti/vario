@@ -1,17 +1,10 @@
 #include <axp20x.h>
-#include <cache_global.hpp>
+#include <flight_companion/cache_global.hpp>
 #include "esp32-hal-cpu.h"
 
 AXP20X_Class axp;
 bool axpIrq = 1;
 
-// variável display foi declarado dentro de screen.h
-/**
-   Layout
-   # esp32_uptime
-   # TYPE esp32_uptime gauge
-   esp32_uptime 23899
-*/
 void setMetric(String *p, String metric, String value)
 {
     *p += "# " + metric + "\n";
@@ -85,19 +78,8 @@ void cache_core_status()
 #endif
     sys_cache.esp32_temperature = axp.getTemp();
     sys_cache.esp32_ts_temperature = axp.getTSTemp();
-    // sys_cache.sketch_size = ESP.getSketchSize();
-    // sys_cache.flash_size = ESP.getFreeSketchSpace();
-    // int available_size = flash_size - sketch_size;
     sys_cache.uptime = millis();
     sys_cache.power_down_voltage = axp.getPowerDownVoltage();
-#if defined(SYSCACHE_LOG_ENABLED)
-    Serial.printf("SBV = %f V ", sys_cache.battery_voltage);
-#ifdef AXP20X
-    Serial.printf("SBP = %d % ", sys_cache.battery_percentage);
-#endif
-    Serial.printf("ST1 = %f *C ", sys_cache.esp32_temperature);
-    Serial.printf("ST2 = %f *C \n", sys_cache.esp32_ts_temperature);
-#endif
 }
 
 void configure_system()
