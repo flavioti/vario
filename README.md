@@ -17,17 +17,15 @@ Este é um projeto visa ser um computador de vôo para praticantes de parapente.
   - Satelites (GNSS)
   - Variometro sonoro (ascendente e descendente)
   - Uso de baterias 18650 (3.6V)
-  - Case feito em impressora 3D (Colocar o link aqui)
 - Em desenvolvimento:
+  - Case feito em impressora 3D (Colocar o link aqui)
   - Padronização da interface gráfica do display OLED
   - Integração com xctrack (app android)
   - Gravação de dados em arquivo SD no formato IGC
-- Em planejamento:
   - Integração do TBEAM com tela e-paper que já possui um esp32, provavelmente será com o protocolo ESP NOW.
-  - Substituição da tela OLED por um display E-PAPER maior
+- Em planejamento:
   - Transmissão de dados via LORAWAN
   - Transmissão de dados via WIFI (internet)
-  - Integração com what3words.com
 - Quem sabe:
   - Integração com meshtastic
   - Sinal de socorro via LORAWAN
@@ -42,13 +40,12 @@ Este é um projeto visa ser um computador de vôo para praticantes de parapente.
 1x Tela oled 128x64 (I2C)
 1x Sensor de temperatura BMP280 (I2C)
 1x Buzzer passivo de alta qualidade
+1x MPU6050 (I2C)
+1x Antena GNSS (quadrada)
 
-## Planos de integração (futuro) ##
+## Bibliotecas ##
 
-- MPU9250
-  - Acelerômetro, Giroscópio e Magnetômetro
-- Tela e-paper
-  - Tela de baixo consumo usado em leitores de e-book
+<https://github.com/jrowberg/i2cdevlib/tree/master/Arduino/MPU6050>
 
 ## Tela oled 0.96 ##
 
@@ -80,6 +77,6 @@ GPS não está funcionando.
 
 <http://tlbenedetti.blogspot.com/2017/12/variometro-arduino-com-oled-e-bmp280.html>
 
-## Outros  ##
+## Outros ##
 
 Não sou especialista em C ou C++, então o código não deve estar muito bom, contribuições nesse ponto (principalmente) são muito bem vindas.
