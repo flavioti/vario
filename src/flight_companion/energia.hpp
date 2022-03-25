@@ -1,8 +1,11 @@
+#ifdef AXP192
 #include <axp20x.h>
+
 #include <flight_companion/cache_global.hpp>
 #include "esp32-hal-cpu.h"
 
 AXP20X_Class axp;
+
 bool axpIrq = 1;
 
 void setMetric(String *p, String metric, String value)
@@ -82,7 +85,7 @@ void cache_core_status()
     sys_cache.power_down_voltage = axp.getPowerDownVoltage();
 }
 
-void configure_system()
+void configure_axp()
 {
     Serial.println("configuring system");
 
@@ -271,3 +274,5 @@ void configure_system()
         axp.clearIRQ();
     }
 }
+
+#endif

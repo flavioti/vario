@@ -1,13 +1,70 @@
+#include <map>
+
 // -----------------------------------------------------------------------------
 // Version
 // -----------------------------------------------------------------------------
 
-#define APP_NAME "IOT_VARIO"
-#define APP_VERSION "0.1.0"
+#define APP_NAME "COPILOTO"
+#define APP_VERSION "1.1.0"
 
 // -----------------------------------------------------------------------------
 // Configuration
 // -----------------------------------------------------------------------------
+
+// PIN AND ADDRESS DEFINITIONS
+
+// GPIO - General Purpose Input/Output
+
+#if defined(ESP32_WROOM_32)
+
+
+// GPIO 13
+#define GPIO_13             13
+#define PORT_PHISICAL_20    GPIO_13
+#define PORT_ADC2_4         GPIO_13
+#define PORT_HSPI_ID        GPIO_13
+#define PORT_TOUCH4         GPIO_13
+
+// GPIO 15
+#define GPIO_15             15
+#define PORT_PHISICAL_21    GPIO_15
+#define PORT_ADC2_3         GPIO_15
+#define PORT_TOUCH3         GPIO_15
+
+// GPIO 21
+#define GPIO_21             21
+#define PORT_PHISICAL_42    GPIO_21
+#define PORT_SDA            GPIO_21
+#define PORT_V_SPI_HD       GPIO_21
+
+// GPIO 33
+#define GPIO_33             33
+#define PORT_PHISICAL_13    GPIO_33
+#define PORT_ADC1_5         GPIO_33
+#define PORT_TOUCH8         GPIO_33
+#define PORT_XTAL32         GPIO_33
+
+// CUSTOM PIN DEFINITION
+#define VOLTAGE_PIN         GPIO_33
+#define BUZZER_PIN          GPIO_15
+#define PIN_I2C_SDA         GPIO_21
+#define PIN_I2C_SCL         22
+#define GPS_RX_PIN          34
+#define GPS_TX_PIN          12
+
+// Display mudou o endereço sozinho quando liguei todos o componentes juntos, ficar de olho nisso...
+#define SCREEN_ADDRESS      0x3C
+// #define SCREEN_ADDRESS      0x3D
+
+#define SCREEN_WIDTH        128 // OLED display width, in pixels
+#define SCREEN_HEIGHT       64 // OLED display height, in pixels
+#define OLED_RESET          -1 // Reset pin # (or -1 if sharing Arduino reset pin)
+
+#define BMP280_ADDRESS      0x76
+
+#endif
+
+
 
 // TLORA_V1 definido no platformio.ini
 #if defined(TLORA_V1)
@@ -21,23 +78,19 @@
 #define TTGO_V2_OLED_PIN_RST U8X8_PIN_NONE // connected to CPU RST/EN
 #define TTGO_V2_OLED_PIN_SDA 21
 #define TTGO_V2_OLED_PIN_SCL 22
-#define I2C_SDA 21
-#define I2C_SCL 22
 #endif
 
 // -----------------------------------------------------------------------------
 // CORE
 // -----------------------------------------------------------------------------
 
-#define AXP192
+// #define AXP192
 #define CORE_0 0
 #define CORE_1 1
-
-// -----------------------------------------------------------------------------
-// OLED
-// -----------------------------------------------------------------------------
-
-#define SCREEN_ADDRESS 0x3C
+#define SENSOR_READ_RATE 1000 // 1s
+#define BUZZER_RATE 1
+#define GNSS_READ_RATE 5000 // 5s
+#define COPILOT_READ_RATE 1000 // 1s
 
 // -----------------------------------------------------------------------------
 // GPS
@@ -50,15 +103,14 @@
 // BMP280
 // -----------------------------------------------------------------------------
 
-#define VARIO_BMP280_I2C_ADDRESS 0x76
 #define VARIO_BMP280_SAMPLES 5
 
 // -----------------------------------------------------------------------------
 // VARIO
 // -----------------------------------------------------------------------------
 
-#define VARIO_SINK_THRESHOLD_SINK -1.0 // default -2.4 ms/sPS
-#define VARIO_SINK_THRESHOLD_LIFT 0.1  // default 0.2 ms/s
+#define VARIO_SINK_THRESHOLD_SINK -1.0 // default -1.0 ms/s
+#define VARIO_SINK_THRESHOLD_LIFT 0.3  // default 0.3 ms/s
 
 // Valores para considerar que o dispositivo está em movimento
 #define VARIO_ACCEL_Z_THRESHOLD_SINK -2000
@@ -73,7 +125,7 @@
 // BUZZER
 // -----------------------------------------------------------------------------
 
-#define BUZZER_PIN 15
+#define BUZZER_CHANNEL 0
 #define VARIO_BUZZER_LOG_ENABLED
 
 // -----------------------------------------------------------------------------

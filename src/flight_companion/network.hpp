@@ -16,16 +16,19 @@ void connect_wifi2()
     WiFi.disconnect();
 
     ESP_LOGD("NETWORK", "Connecting to WiFi");
-    // Serial.println("Connecting to WiFi");
 
     WiFi.begin(WIFI_SSID, WIFI_PASS);
 
     while (WiFi.status() != WL_CONNECTED)
     {
         delay(500);
+        Serial.print(WiFi.status());
         Serial.print(".");
     }
-    Serial.printf("\nConnected to WiFi %s network with IP Address %s\n", WIFI_SSID, WiFi.localIP());
+    Serial.print("WiFi mac address: ");
+    Serial.println(WiFi.macAddress());
+    IPAddress ip = WiFi.localIP();
+    Serial.printf("\nConnected to WiFi %s network with IP Address %u.%u.%u.%u\n", WIFI_SSID, ip[0], ip[1], ip[2], ip[3]);
 }
 
 // -----------------------------------------------------------------------------
@@ -113,6 +116,15 @@ const char *serverIndex =
     "});"
     "</script>";
 
+void setMetric2(String *p, String metric, String value)
+{
+    *p += "# " + metric + "\n";
+    *p += "# TYPE " + metric + " gauge\n";
+    *p += "" + metric + " ";
+    *p += value;
+    *p += "\n";
+}
+
 String getMetrics()
 {
     String p = ""; // acumulador de dados
@@ -121,38 +133,38 @@ String getMetrics()
     int flash_size = ESP.getFreeSketchSpace();
     int available_size = flash_size - sketch_size;
 
-    setMetric(&p, "esp32_uptime", String(millis()));
-    setMetric(&p, "esp32_wifi_rssi", String(WiFi.RSSI()));
-    setMetric(&p, "esp32_heap_size", String(ESP.getHeapSize()));
-    setMetric(&p, "esp32_free_heap", String(xPortGetFreeHeapSize()));
-    setMetric(&p, "esp32_min_ever_free_heap", String(xPortGetMinimumEverFreeHeapSize()));
-    setMetric(&p, "esp32_sketch_size", String(sketch_size));
-    setMetric(&p, "esp32_flash_size", String(flash_size));
-    setMetric(&p, "esp32_available_size", String(available_size));
-    setMetric(&p, "esp32_internal_temperature", String(sys_cache.esp32_temperature));
+    setMetric2(&p, "esp32_uptime", String(millis()));
+    setMetric2(&p, "esp32_wifi_rssi", String(WiFi.RSSI()));
+    setMetric2(&p, "esp32_heap_size", String(ESP.getHeapSize()));
+    setMetric2(&p, "esp32_free_heap", String(xPortGetFreeHeapSize()));
+    setMetric2(&p, "esp32_min_ever_free_heap", String(xPortGetMinimumEverFreeHeapSize()));
+    setMetric2(&p, "esp32_sketch_size", String(sketch_size));
+    setMetric2(&p, "esp32_flash_size", String(flash_size));
+    setMetric2(&p, "esp32_available_size", String(available_size));
+    setMetric2(&p, "esp32_internal_temperature", String(sys_cache.esp32_temperature));
 
-    setMetric(&p, "esp32_battery_voltage", String(sys_cache.battery_voltage));
-    setMetric(&p, "esp32_battery_percentage", String(sys_cache.battery_percentage));
-    setMetric(&p, "esp32_power_down_voltage", String(sys_cache.power_down_voltage));
+    setMetric2(&p, "esp32_battery_voltage", String(sys_cache.battery_voltage));
+    setMetric2(&p, "esp32_battery_percentage", String(sys_cache.battery_percentage));
+    setMetric2(&p, "esp32_power_down_voltage", String(sys_cache.power_down_voltage));
 
-    setMetric(&p, "esp32_baro_temperature", String(baro_cache.temperature, 1));
-    setMetric(&p, "esp32_baro_pressure", String(baro_cache.pressure, 1));
-    setMetric(&p, "esp32_baro_altitude", String(baro_cache.altitude, 1));
-    setMetric(&p, "esp32_baro_vario", String(baro_cache.vario, 6));
+    setMetric2(&p, "esp32_baro_temperature", String(baro_cache.temperature, 1));
+    setMetric2(&p, "esp32_baro_pressure", String(baro_cache.pressure, 1));
+    setMetric2(&p, "esp32_baro_altitude", String(baro_cache.altitude, 1));
+    setMetric2(&p, "esp32_baro_vario", String(baro_cache.vario, 6));
 
-    setMetric(&p, "esp32_geo_altitude", String(geo_cache.altitude, 1));
-    setMetric(&p, "esp32_geo_latitude", String(geo_cache.latitude, 6));
-    setMetric(&p, "esp32_geo_longitude", String(geo_cache.longitude, 6));
-    setMetric(&p, "esp32_geo_satellites", String(geo_cache.satellites));
+    setMetric2(&p, "esp32_geo_altitude", String(geo_cache.altitude, 1));
+    setMetric2(&p, "esp32_geo_latitude", String(geo_cache.latitude, 6));
+    setMetric2(&p, "esp32_geo_longitude", String(geo_cache.longitude, 6));
+    setMetric2(&p, "esp32_geo_satellites", String(geo_cache.satellites));
 
-    setMetric(&p, "esp32_mpu_temp", String(mpu_cache.temp));
-    setMetric(&p, "esp32_mpu_gx", String(mpu_cache.gx));
-    setMetric(&p, "esp32_mpu_gy", String(mpu_cache.gy));
-    setMetric(&p, "esp32_mpu_gz", String(mpu_cache.gz));
-    setMetric(&p, "esp32_mpu_ax", String(mpu_cache.ax));
-    setMetric(&p, "esp32_mpu_ay", String(mpu_cache.ay));
-    setMetric(&p, "esp32_mpu_az", String(mpu_cache.az));
-    setMetric(&p, "esp32_mpu_delta_z", String(mpu_cache.delta_z));
+    setMetric2(&p, "esp32_mpu_temp", String(mpu_cache.temp));
+    setMetric2(&p, "esp32_mpu_gx", String(mpu_cache.gx));
+    setMetric2(&p, "esp32_mpu_gy", String(mpu_cache.gy));
+    setMetric2(&p, "esp32_mpu_gz", String(mpu_cache.gz));
+    setMetric2(&p, "esp32_mpu_ax", String(mpu_cache.ax));
+    setMetric2(&p, "esp32_mpu_ay", String(mpu_cache.ay));
+    setMetric2(&p, "esp32_mpu_az", String(mpu_cache.az));
+    setMetric2(&p, "esp32_mpu_delta_z", String(mpu_cache.delta_z));
 
     return p;
 }

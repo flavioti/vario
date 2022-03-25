@@ -1,82 +1,5 @@
 #include <esp_now.h>
 
-#if defined(TLORA_V1)
-
-#include <FreeRTOS.h>
-#include <Arduino.h>
-
-#include <esp32-hal-i2c.h>
-#include <TinyGPS++.h>
-
-#include <flight_companion/config.hpp>
-#include <flight_companion/cache_global.hpp>
-#include <flight_companion/queue.hpp>
-#include <flight_companion/mpu6050.hpp>
-#include <flight_companion/screen.hpp>
-#include <flight_companion/gps.hpp>
-#include <flight_companion/bmp280.hpp>
-#include <flight_companion/buzzer.hpp>
-#include <flight_companion/energia.hpp>
-#include <flight_companion/network.hpp>
-
-TaskHandle_t BuzzerTaskHandler;
-TaskHandle_t WelcomeTaskHandler;
-
-void setup()
-{
-    esp_log_level_set("MAIN", ESP_LOG_VERBOSE);
-
-    sleep(2);
-    Serial.begin(9600);
-    while (!Serial)
-        ;
-    ESP_LOGI(&TAG, "iniciando");
-    configure_system();
-
-    connect_wifi2();
-
-    // Buzzer tasks
-    xTaskCreatePinnedToCore(play_welcome_beep, "play_welcome_beep", 10000, NULL, 1, &WelcomeTaskHandler, CORE_1);
-    xTaskCreatePinnedToCore(buzzer_task, "buzzer_task_core_0", 10000, NULL, 10, &BuzzerTaskHandler, CORE_1);
-
-    setup_screen();
-    setup_gnss();
-    setup_mpu6050();
-    init_bmp280();
-    config_web_server();
-}
-
-unsigned long next_loop_millis = millis();
-
-void loop()
-{
-    if (millis() > next_loop_millis)
-    {
-        cache_core_status();
-        loop_g();
-        loop_mpu6050();
-        loop_bmp280_by_time();
-        update_screen_a();
-        handle_client();
-        next_loop_millis = millis() + 100; // Define proximo loop para 1 segundo
-    }
-
-    struct ENCODER_Motion *ENCODER_Received;
-    if (xQueueReceive(xQueueMPU6050Metrics, &(ENCODER_Received), 0))
-    {
-        mpu_cache.temp = ENCODER_Received->temp;
-        mpu_cache.ax = ENCODER_Received->ax;
-        mpu_cache.ay = ENCODER_Received->ay;
-        mpu_cache.az = ENCODER_Received->az;
-        mpu_cache.gx = ENCODER_Received->gx;
-        mpu_cache.gy = ENCODER_Received->gy;
-        mpu_cache.gz = ENCODER_Received->gz;
-        mpu_cache.delta_z = ENCODER_Received->delta_z;
-    }
-}
-
-#endif
-
 #if defined(LILYGO_T5_47)
 
 #ifndef BOARD_HAS_PSRAM
@@ -94,13 +17,15 @@ void loop()
 #include <Wire.h>
 #include "flight_display/lilygo.h"
 #include "flight_display/logo.h"
-#include "WiFi.h"
 #include <esp_now.h>
+#include <WiFi.h>
 
 #define BATT_PIN 36
 #define BUTTON_1 34
 #define BUTTON_2 35
 #define BUTTON_3 39
+
+TwoWire I2CBME = TwoWire(0);
 
 Button2 btn1(BUTTON_1);
 Button2 btn2(BUTTON_2);
@@ -178,18 +103,144 @@ void buttonPressed(Button2 &b)
     state++;
 }
 
+TwoWire I2C_0 = TwoWire(0);
+#define I2C_Freq 100000
+#define SDA_0 15
+#define SCL_0 14
+
+void find_i2c_devices()
+{
+    I2C_0.begin(SDA_0, SCL_0);
+
+    Serial.println("\nI2C Scanner");
+    byte error, address;
+    int nDevices;
+    Serial.println("Scanning...");
+    nDevices = 0;
+    for (address = 1; address < 127; address++)
+    {
+        delay(10);
+        Serial.println(address);
+        // The i2c_scanner uses the return value of
+        // the Write.endTransmisstion to see if
+        // a device did acknowledge to the address.
+        I2C_0.beginTransmission(address);
+        error = I2C_0.endTransmission();
+        if (error == 0)
+        {
+            Serial.print("I2C device found at address 0x");
+            if (address < 16)
+                Serial.print("0");
+            Serial.print(address, HEX);
+            Serial.println("  !");
+            nDevices++;
+        }
+        else if (error == 4)
+        {
+            Serial.print("Unknown error at address 0x");
+            if (address < 16)
+                Serial.print("0");
+            Serial.println(address, HEX);
+        }
+    }
+    if (nDevices == 0)
+        Serial.println("No I2C devices found\n");
+    else
+        Serial.println("done\n");
+    delay(5000); // wait 5 seconds for next scan
+}
+
+#include <Adafruit_Sensor.h>
+#include <Adafruit_BMP280.h>
+
+Adafruit_BMP280 bmp280;
+
+#define I2C_SDA 14
+#define I2C_SCL 15
+
+// REPLACE WITH YOUR RECEIVER MAC Address
+uint8_t broadcastAddress[] = {0x8C, 0xAA, 0xB5, 0x84, 0xDC, 0x48};
+// 8C:AA:B5:84:DC:48
+
+// Structure example to send data
+// Must match the receiver structure
+typedef struct struct_message
+{
+    char a[32];
+    int b;
+    float c;
+    bool d;
+} struct_message;
+
+// Create a struct_message called myData
+struct_message myData;
+
+esp_now_peer_info_t peerInfo;
+
+// callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+{
+    Serial.print("\r\nLast Packet Send Status:\t");
+    Serial.println(status == ESP_NOW_SEND_SUCCESS ? "Delivery Success" : "Delivery Fail");
+}
+
+// callback function that will be executed when data is received
+void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
+{
+    memcpy(&myData, incomingData, sizeof(myData));
+    Serial.print("Bytes received: ");
+    Serial.println(len);
+    Serial.print("Char: ");
+    Serial.println(myData.a);
+    Serial.print("Int: ");
+    Serial.println(myData.b);
+    Serial.print("Float: ");
+    Serial.println(myData.c);
+    Serial.print("Bool: ");
+    Serial.println(myData.d);
+    Serial.println();
+
+    Rect_t area1 = {
+        .x = 50,
+        .y = 50,
+        .width = 100 - 20,
+        .height = 100 / 2 + 80};
+
+    epd_clear_area(area1);
+
+    cursor_x = 50;
+    cursor_y = 50;
+
+    write_string((GFXfont *)&FiraSans, (char *)"Teste fghdfgdf", &cursor_x, &cursor_y, NULL);
+}
+
 void setup()
 {
+    sleep(2);
     Serial.begin(9600);
+    while (!Serial)
+        sleep(1);
 
-    WiFi.mode(WIFI_MODE_STA);
-    Serial.println(WiFi.macAddress());
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
 
-    // esp_now_init();
-    // esp_now_add_peer();
-    // esp_now_send();
+    // Init ESP-NOW
+    if (esp_now_init() != ESP_OK)
+    {
+        Serial.println("Error initializing ESP-NOW");
+        return;
+    }
 
-    // esp_now_register_rcv_cb();
+    // Once ESPNow is successfully Init, we will register for recv CB to
+    // get recv packer info
+    esp_now_register_recv_cb(OnDataRecv);
+
+    // find_i2c_devices();
+
+    // Set device as a Wi-Fi Station
+    // WiFi.mode(WIFI_STA);
+    // WiFi.disconnect();
+    // Serial.println(WiFi.macAddress());
 
     epd_init();
 
@@ -210,7 +261,7 @@ void setup()
     epd_clear();
     write_string((GFXfont *)&FiraSans, (char *)overview[0], &cursor_x, &cursor_y, framebuffer);
 
-    //Draw Box
+    // Draw Box
     epd_draw_rect(600, 450, 120, 60, 0, framebuffer);
     cursor_x = 615;
     cursor_y = 490;
@@ -219,7 +270,7 @@ void setup()
     epd_draw_rect(740, 450, 120, 60, 0, framebuffer);
     cursor_x = 755;
     cursor_y = 490;
-    writeln((GFXfont *)&FiraSans, "Next", &cursor_x, &cursor_y, framebuffer);
+    writeln((GFXfont *)&FiraSans, "Próximo", &cursor_x, &cursor_y, framebuffer);
 
     Rect_t area = {
         .x = 160,
@@ -232,6 +283,7 @@ void setup()
 
     epd_draw_grayscale_image(epd_full_screen(), framebuffer);
 
+    Serial.println("EPD power off");
     epd_poweroff();
 }
 
@@ -242,6 +294,183 @@ void loop()
     btn3.loop();
 }
 
-// 34:AB:95:5D:97:18 id da tela
+#endif
+
+#if defined(ESP32_DEV_KIT)
+
+#include <FreeRTOS.h>
+#include <Arduino.h>
+#include <esp32-hal-i2c.h>
+
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
+
+#include <flight_companion/config.hpp>
+#include <flight_companion/cache_global.hpp>
+#include <flight_companion/queue.hpp>
+#include <flight_companion/screen.hpp>
+#include <flight_companion/bmp280.hpp>
+#include <flight_companion/buzzer.hpp>
+#include <flight_companion/network.hpp>
+#include <flight_companion/config.hpp>
+#include <flight_companion/mpu6050.hpp>
+#include <flight_companion/neo6m.hpp>
+#include <flight_companion/copilot.hpp>
+
+// STATUS
+
+static int BARO = 0;
+// static int ACEL = 1;
+static int OLED = 2;
+bool component_status[3] = {false, false, false};
+
+TaskHandle_t CopilotTaskHandler;
+TaskHandle_t BuzzerTaskHandler;
+TaskHandle_t BaroTaskHandler;
+TaskHandle_t AccelTaskHandler;
+TaskHandle_t GNSSTaskHandler;
+
+uint8_t broadcastAddress[] = {0x34, 0xAB, 0x95, 0x5D, 0x97, 0x18};
+
+// Structure example to send data
+// Must match the receiver structure
+typedef struct struct_message
+{
+    char a[32];
+    int b;
+    float c;
+    bool d;
+} struct_message;
+
+// Create a struct_message called myData
+struct_message myData;
+
+esp_now_peer_info_t peerInfo;
+
+// callback when data is sent
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+{
+    Serial.print("\r\nLast Packet Send Status:\t");
+    if (status != ESP_NOW_SEND_SUCCESS)
+    {
+        Serial.println("Delivery Fail");
+    }
+}
+
+void setup()
+{
+    // Aguarda 1 segundo para não bugar o texto do terminal
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
+
+    analogReadResolution(12);
+    pinMode(BUZZER_PIN, OUTPUT);
+
+    Serial.begin(9600);
+    while (!Serial)
+        vTaskDelay(10 / portTICK_PERIOD_MS);
+
+    Serial.println("[CORE] Serial started");
+
+    digitalWrite(BUZZER_PIN, LOW);
+
+    bool OK = setup_screen();
+    component_status[OLED] = OK;
+
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+
+    // Init ESP-NOW
+    if (esp_now_init() == ESP_OK)
+    {
+        Serial.println("[ESP-NOW] status.......................: OK");
+    }
+    else
+    {
+        Serial.println("[ESP-NOW] status.......................: FAILED");
+    }
+
+    // Once ESPNow is successfully Init, we will register for Send CB to
+    // get the status of Trasnmitted packet
+    esp_now_register_send_cb(OnDataSent);
+
+    // Register peer
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+
+    // Add peer
+    if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    {
+        Serial.println("Failed to add peer");
+        return;
+    }
+
+    // connect_wifi2();
+
+    OK = init_bmp280();
+    // component_status[BARO] = OK;
+    component_status[BARO] = false;
+
+    setup_mpu6050();
+    setup_gnss();
+
+    xTaskCreatePinnedToCore(copilot_task, "copilot_task", 5000, NULL, (2 | portPRIVILEGE_BIT), &CopilotTaskHandler, CORE_1);
+
+    xTaskCreatePinnedToCore(gnss_task, "gnss_task", 5000, NULL, (2 | portPRIVILEGE_BIT), &GNSSTaskHandler, CORE_1);
+
+    if (component_status[BARO])
+    {
+        // Se o barometro não for detectado, não habilita tarefas
+        // do buzzer nem do barometro
+        xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, 10, &BuzzerTaskHandler, CORE_1);
+        xTaskCreatePinnedToCore(baro_task, "baro_task", 2048, NULL, (2 | portPRIVILEGE_BIT), &BaroTaskHandler, CORE_1);
+    }
+
+    xTaskCreatePinnedToCore(accel_task, "accel_task", 2048, NULL, (2 | portPRIVILEGE_BIT), &AccelTaskHandler, CORE_1);
+
+    Serial.println("[CORE] setup done");
+}
+
+unsigned long min_next_loop_millis = 0;
+
+char ptrTaskList[250];
+
+void loop()
+{
+    if (millis() > min_next_loop_millis)
+    {
+#ifdef XDEBUG
+        if (uxTaskGetNumberOfTasks() > 15)
+        {
+            Serial.printf("[CORE] Task count: %i\n", uxTaskGetNumberOfTasks());
+        }
+#endif
+
+        min_next_loop_millis = millis() + 10000;
+
+        // TESTE ESP NOW
+
+        // Set values to send
+        strcpy(myData.a, "THIS IS A CHAR");
+        myData.b = random(1, 20);
+        myData.c = 1.2;
+        myData.d = false;
+
+        // Send message via ESP-NOW
+        esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
+
+        if (result == ESP_OK)
+        {
+            Serial.println("Sent with success");
+        }
+        else
+        {
+            Serial.println("Error sending the data");
+        }
+
+    } // TIMED LOOP
+}
 
 #endif

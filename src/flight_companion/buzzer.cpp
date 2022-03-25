@@ -4,9 +4,6 @@
 #include "FreeRTOS.h"
 #include <flight_companion/config.hpp>
 
-#define BUZZER_PIN 15
-#define BUZZER_CHANNEL 0
-
 void tone(uint8_t pin, unsigned int frequency, uint8_t channel)
 {
     if (ledcRead(channel))
@@ -24,15 +21,6 @@ void noTone(uint8_t pin, uint8_t channel)
     ledcWrite(channel, 0);
 }
 
-void play_welcome_beep(void *pvParameters)
-{
-    ESP_LOGI(&TAG, "play_welcome_beep running");
-    tone(BUZZER_PIN, 1600, BUZZER_CHANNEL);
-    delay(95);
-    noTone(BUZZER_PIN, BUZZER_CHANNEL);
-    vTaskDelete(NULL);
-}
-
 std::vector<float> vVariation = {-10, -9.5, -9, -8.5, -8, -7.5, -7, -6.5, -6, -5.5, -5, -4.5, -4, -3.5, -3, -2.5, -2, -1.5, -1, -0.5, 0, 0.5, 1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10};
 std::vector<short> vFrequency = {200, 202, 204, 206, 210, 214, 220, 225, 230, 235, 242, 250, 263, 282, 305, 330, 358, 390, 424, 462, 500, 540, 600, 680, 800, 920, 1010, 1075, 1120, 1160, 1200, 1240, 1280, 1320, 1360, 1400, 1440, 1480, 1520, 1560, 1600};
 std::vector<short> vLength = {2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 2000, 1950, 1800, 1400, 1000, 600, 380, 220, 130, 100, 100, 100, 100, 150, 200, 225, 230, 215, 200, 185, 172, 160, 150, 142, 135, 130, 125, 120, 115, 110, 105, 100, 95};
@@ -40,54 +28,85 @@ std::vector<short> vPause = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 200, 600, 1
 
 void buzzer_task(void *pvParameters)
 {
-    int duracao = millis();
-    int pause = 0;
+    int duracao = millis() + 2000;
+    int pause = 500;
     bool buzzer_buzy = false;
 
-    float last_delta_z = 0; // variação mais recente do eixo Z
-    while (1)
+    for (;;)
     {
-        xQueueReceive(xQueueBuzzerDeltaAZ, &last_delta_z, 0);
-
-        float vario;
-        if (xQueueReceive(xQueueVario, &vario, 0))
-        {
-            Serial.println("VARIO\tDELTA_Z");
-            Serial.printf("%.3f\t%.3f\n", vario, last_delta_z);
-
-            if ((vario <= VARIO_SINK_THRESHOLD_SINK ||
-                 vario >= VARIO_SINK_THRESHOLD_LIFT) and
-                (last_delta_z <= VARIO_ACCEL_Z_THRESHOLD_SINK ||
-                 last_delta_z >= VARIO_ACCEL_Z_THRESHOLD_LIFT))
-            {
-                for (int i = 0; i < vVariation.size(); i++)
-                {
-                    float range1 = vVariation[i];
-                    float range2 = vVariation[i + 1];
-                    if (vario > range1 && vario < range2)
-                    {
-                        if (!buzzer_buzy)
-                        {
-                            buzzer_buzy = true;
-                            Serial.println("VARIO\tDELTA_Z\tFREQ\tDURACAO\tPAUSA\tCORE");
-                            Serial.printf("%.3f\t%.3f\t%i\t%i\t%i\t%i\n",
-                                          vario, last_delta_z, vFrequency[i], vLength[i], vPause[i], xPortGetCoreID());
-                            noTone(BUZZER_PIN, BUZZER_CHANNEL);
-                            tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
-                            duracao = millis() + vLength[i];
-                            pause = vPause[i];
-                        }
-                    }
-                }
-            }
-        }
-
         if (buzzer_buzy and (millis() > duracao))
         {
             buzzer_buzy = false;
             noTone(BUZZER_PIN, BUZZER_CHANNEL);
             vTaskDelay(pause);
         }
-        vTaskDelay(1);
-    }
+        else
+        {
+            float vario;
+            if (xQueueReceive(xQueueVario, &vario, 0))
+            {
+                if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
+                {
+                    for (int i = 0; i < vVariation.size(); i++)
+                    {
+                        float range1 = vVariation[i];
+                        float range2 = vVariation[i + 1];
+                        if (vario >= range1 && vario < range2)
+                        {
+                            Serial.print("i: ");
+                            Serial.print("Vario: ");
+                            Serial.println(i);
+                            Serial.println(vario);
+
+                            if (!buzzer_buzy)
+                            {
+                                buzzer_buzy = true;
+                                noTone(BUZZER_PIN, BUZZER_CHANNEL);
+                                tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
+                                duracao = millis() + vLength[i];
+                                pause = vPause[i];
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
+#ifdef XDEBUG
+        UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
+        Serial.printf("BuzzerTask size: %i words\n", uxHighWaterMark);
+#endif
+
+        vTaskDelay(BUZZER_RATE / portTICK_PERIOD_MS);
+
+    } // for
+}
+
+
+void play_welcome_beep_task(void *pvParameters)
+{
+    noTone(BUZZER_PIN, 0);
+    tone(BUZZER_PIN, 1600, 0);
+    delay(100);
+    tone(BUZZER_PIN, 2000, 0);
+    delay(50);
+    noTone(BUZZER_PIN, 0);
+
+    vTaskDelete(NULL);
+}
+
+void play_welcome_beep()
+{
+    xTaskCreatePinnedToCore(play_welcome_beep_task, "play_welcome_beep_task", 1024, NULL, 10, NULL, CORE_1);
+}
+
+void play_beep_screen_error()
+{
+    noTone(BUZZER_PIN, 0);
+    tone(BUZZER_PIN, 500, 0);
+    delay(100);
+    noTone(BUZZER_PIN, 0);
+    tone(BUZZER_PIN, 800, 0);
+    delay(50);
+    noTone(BUZZER_PIN, 0);
 }

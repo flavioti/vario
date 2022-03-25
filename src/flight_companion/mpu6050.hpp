@@ -3,6 +3,6 @@
 
 void setup_mpu6050();
 
-void loop_mpu6050();
+void accel_task(void *pvParameters);
 
 #endif
