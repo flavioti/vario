@@ -42,34 +42,34 @@ void buzzer_task(void *pvParameters)
         }
         else
         {
-            float vario;
-            if (xQueueReceive(xQueueVario, &vario, 0))
-            {
-                if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
-                {
-                    for (int i = 0; i < vVariation.size(); i++)
-                    {
-                        float range1 = vVariation[i];
-                        float range2 = vVariation[i + 1];
-                        if (vario >= range1 && vario < range2)
-                        {
-                            Serial.print("i: ");
-                            Serial.print("Vario: ");
-                            Serial.println(i);
-                            Serial.println(vario);
+            // float vario;
+            // if (xQueueReceive(xQueueVario, &vario, 0))
+            // {
+            //     if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
+            //     {
+            //         for (int i = 0; i < vVariation.size(); i++)
+            //         {
+            //             float range1 = vVariation[i];
+            //             float range2 = vVariation[i + 1];
+            //             if (vario >= range1 && vario < range2)
+            //             {
+            //                 Serial.print("i: ");
+            //                 Serial.print("Vario: ");
+            //                 Serial.println(i);
+            //                 Serial.println(vario);
 
-                            if (!buzzer_buzy)
-                            {
-                                buzzer_buzy = true;
-                                noTone(BUZZER_PIN, BUZZER_CHANNEL);
-                                tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
-                                duracao = millis() + vLength[i];
-                                pause = vPause[i];
-                            }
-                        }
-                    }
-                }
-            }
+            //                 if (!buzzer_buzy)
+            //                 {
+            //                     buzzer_buzy = true;
+            //                     noTone(BUZZER_PIN, BUZZER_CHANNEL);
+            //                     tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
+            //                     duracao = millis() + vLength[i];
+            //                     pause = vPause[i];
+            //                 }
+            //             }
+            //         }
+            //     }
+            // }
         }
 
 #ifdef XDEBUG

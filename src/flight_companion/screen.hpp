@@ -5,4 +5,6 @@ bool setup_screen();
 
 void display_vario(float vario);
 
+void display_gps_altitude(double altitude);
+
 #endif

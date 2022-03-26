@@ -307,7 +307,6 @@ void loop()
 #include <Adafruit_SSD1306.h>
 
 #include <flight_companion/config.hpp>
-#include <flight_companion/cache_global.hpp>
 #include <flight_companion/queue.hpp>
 #include <flight_companion/screen.hpp>
 #include <flight_companion/bmp280.hpp>
@@ -348,13 +347,11 @@ struct_message myData;
 
 esp_now_peer_info_t peerInfo;
 
-// callback when data is sent
 void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
 {
-    Serial.print("\r\nLast Packet Send Status:\t");
-    if (status != ESP_NOW_SEND_SUCCESS)
+    if (status == ESP_NOW_SEND_FAIL)
     {
-        Serial.println("Delivery Fail");
+        // Serial.println("[CORE] espnow status.........: FAILED");
     }
 }
 
@@ -365,6 +362,7 @@ void setup()
 
     analogReadResolution(12);
     pinMode(BUZZER_PIN, OUTPUT);
+    pinMode(LED_BUILTIN, OUTPUT);
 
     Serial.begin(9600);
     while (!Serial)
@@ -378,40 +376,37 @@ void setup()
     component_status[OLED] = OK;
 
     // Set device as a Wi-Fi Station
-    WiFi.mode(WIFI_STA);
-    WiFi.disconnect();
+    // WiFi.mode(WIFI_STA);
+    // WiFi.disconnect();
 
     // Init ESP-NOW
-    if (esp_now_init() == ESP_OK)
-    {
-        Serial.println("[ESP-NOW] status.......................: OK");
-    }
-    else
-    {
-        Serial.println("[ESP-NOW] status.......................: FAILED");
-    }
+    // if (esp_now_init() == ESP_OK)
+    // {
+    //     Serial.println("[ESP-NOW] status.............: OK");
+    // }
+    // else
+    // {
+    //     Serial.println("[ESP-NOW] status.............: FAILED");
+    // }
 
     // Once ESPNow is successfully Init, we will register for Send CB to
     // get the status of Trasnmitted packet
-    esp_now_register_send_cb(OnDataSent);
+    // esp_now_register_send_cb(OnDataSent);
 
     // Register peer
-    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
-    peerInfo.channel = 0;
-    peerInfo.encrypt = false;
+    // memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    // peerInfo.channel = 0;
+    // peerInfo.encrypt = false;
 
     // Add peer
-    if (esp_now_add_peer(&peerInfo) != ESP_OK)
-    {
-        Serial.println("Failed to add peer");
-        return;
-    }
-
-    // connect_wifi2();
+    // if (esp_now_add_peer(&peerInfo) != ESP_OK)
+    // {
+    //     Serial.println("Failed to add peer");
+    //     return;
+    // }
 
     OK = init_bmp280();
-    // component_status[BARO] = OK;
-    component_status[BARO] = false;
+    component_status[BARO] = OK;
 
     setup_mpu6050();
     setup_gnss();
@@ -424,11 +419,17 @@ void setup()
     {
         // Se o barometro não for detectado, não habilita tarefas
         // do buzzer nem do barometro
-        xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, 10, &BuzzerTaskHandler, CORE_1);
+        // xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, 10, &BuzzerTaskHandler, CORE_1);
         xTaskCreatePinnedToCore(baro_task, "baro_task", 2048, NULL, (2 | portPRIVILEGE_BIT), &BaroTaskHandler, CORE_1);
     }
 
     xTaskCreatePinnedToCore(accel_task, "accel_task", 2048, NULL, (2 | portPRIVILEGE_BIT), &AccelTaskHandler, CORE_1);
+
+    // Configura o WIFI
+    connect_wifi();
+
+    // Levanta servidor HTTP interno
+    config_web_server();
 
     Serial.println("[CORE] setup done");
 }
@@ -453,24 +454,23 @@ void loop()
         // TESTE ESP NOW
 
         // Set values to send
-        strcpy(myData.a, "THIS IS A CHAR");
-        myData.b = random(1, 20);
-        myData.c = 1.2;
-        myData.d = false;
+        // strcpy(myData.a, "THIS IS A CHAR");
+        // myData.b = random(1, 20);
+        // myData.c = 1.2;
+        // myData.d = false;
 
         // Send message via ESP-NOW
-        esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
+        // esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
 
-        if (result == ESP_OK)
-        {
-            Serial.println("Sent with success");
-        }
-        else
-        {
-            Serial.println("Error sending the data");
-        }
+        // if (result != ESP_OK)
+        // {
+        //     Serial.println("Error sending the data");
+        // }
 
     } // TIMED LOOP
+
+    // Response when a client access via http
+    handle_client();
 }
 
 #endif

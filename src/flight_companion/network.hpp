@@ -1,15 +1,17 @@
 #include <WiFi.h>
-#include <flight_companion/config.hpp>
 #include <HTTPClient.h>
 #include <WiFiClient.h>
 #include <WebServer.h>
 #include <ESPmDNS.h>
 #include <Update.h>
-#include <flight_companion/secrets.hpp>
 #include <nvs_flash.h>
 #include "esp_log.h"
 
-void connect_wifi2()
+#include <flight_companion/config.hpp>
+#include <flight_companion/secrets.hpp>
+#include <flight_companion/copilot.hpp>
+
+void connect_wifi()
 {
     esp_log_level_set("*", ESP_LOG_VERBOSE);
 
@@ -116,73 +118,24 @@ const char *serverIndex =
     "});"
     "</script>";
 
-void setMetric2(String *p, String metric, String value)
-{
-    *p += "# " + metric + "\n";
-    *p += "# TYPE " + metric + " gauge\n";
-    *p += "" + metric + " ";
-    *p += value;
-    *p += "\n";
-}
 
-String getMetrics()
-{
-    String p = ""; // acumulador de dados
 
-    int sketch_size = ESP.getSketchSize();
-    int flash_size = ESP.getFreeSketchSpace();
-    int available_size = flash_size - sketch_size;
-
-    setMetric2(&p, "esp32_uptime", String(millis()));
-    setMetric2(&p, "esp32_wifi_rssi", String(WiFi.RSSI()));
-    setMetric2(&p, "esp32_heap_size", String(ESP.getHeapSize()));
-    setMetric2(&p, "esp32_free_heap", String(xPortGetFreeHeapSize()));
-    setMetric2(&p, "esp32_min_ever_free_heap", String(xPortGetMinimumEverFreeHeapSize()));
-    setMetric2(&p, "esp32_sketch_size", String(sketch_size));
-    setMetric2(&p, "esp32_flash_size", String(flash_size));
-    setMetric2(&p, "esp32_available_size", String(available_size));
-    setMetric2(&p, "esp32_internal_temperature", String(sys_cache.esp32_temperature));
-
-    setMetric2(&p, "esp32_battery_voltage", String(sys_cache.battery_voltage));
-    setMetric2(&p, "esp32_battery_percentage", String(sys_cache.battery_percentage));
-    setMetric2(&p, "esp32_power_down_voltage", String(sys_cache.power_down_voltage));
-
-    setMetric2(&p, "esp32_baro_temperature", String(baro_cache.temperature, 1));
-    setMetric2(&p, "esp32_baro_pressure", String(baro_cache.pressure, 1));
-    setMetric2(&p, "esp32_baro_altitude", String(baro_cache.altitude, 1));
-    setMetric2(&p, "esp32_baro_vario", String(baro_cache.vario, 6));
-
-    setMetric2(&p, "esp32_geo_altitude", String(geo_cache.altitude, 1));
-    setMetric2(&p, "esp32_geo_latitude", String(geo_cache.latitude, 6));
-    setMetric2(&p, "esp32_geo_longitude", String(geo_cache.longitude, 6));
-    setMetric2(&p, "esp32_geo_satellites", String(geo_cache.satellites));
-
-    setMetric2(&p, "esp32_mpu_temp", String(mpu_cache.temp));
-    setMetric2(&p, "esp32_mpu_gx", String(mpu_cache.gx));
-    setMetric2(&p, "esp32_mpu_gy", String(mpu_cache.gy));
-    setMetric2(&p, "esp32_mpu_gz", String(mpu_cache.gz));
-    setMetric2(&p, "esp32_mpu_ax", String(mpu_cache.ax));
-    setMetric2(&p, "esp32_mpu_ay", String(mpu_cache.ay));
-    setMetric2(&p, "esp32_mpu_az", String(mpu_cache.az));
-    setMetric2(&p, "esp32_mpu_delta_z", String(mpu_cache.delta_z));
-
-    return p;
-}
-
+// Gera dados a serem coletados pelo Prometheus
 void handleMetrics()
 {
-    digitalWrite(LED_BUILTIN, 1);
+    digitalWrite(LED_BUILTIN, HIGH);
     web_server.send(200, "text/plain", getMetrics());
-    digitalWrite(LED_BUILTIN, 0);
+    digitalWrite(LED_BUILTIN, LOW);
 }
 
-void config_web_server(void)
+void config_web_server()
 {
+    Serial.println("[NET] webserver..............: INIT");
     if (WiFi.status() == WL_CONNECTED)
     {
         /* Usa MDNS para resolver o DNS */
         bool MDNS_ok = MDNS.begin("esp32");
-        Serial.println(MDNS_ok ? "MDNS respondendo" : "MDNS falhou");
+        Serial.println("[NET] MDNS...................: " + MDNS_ok ? "OK" : "FAILED");
 #ifdef RESTART_IF_MDNS_FAIL
         if (!MDNS_ok)
         {
@@ -244,12 +197,12 @@ void config_web_server(void)
             });
 
         web_server.on("/metrics", HTTP_GET, handleMetrics);
-
         web_server.begin();
+        Serial.println("[NET] webserver..............: OK");
     }
     else
     {
-        Serial.println("NETWORK - OTA server not initialized");
+        Serial.println("[NET] webserver..............: FAILED");
     }
 }
 

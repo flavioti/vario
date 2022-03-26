@@ -50,16 +50,16 @@ void accel_task(void *pvParameters)
                 delta_z_long_tail.pop_front();
             }
             delta_z_long_tail.push_back(az_sample);
-            float az_now = std::accumulate(delta_z_long_tail.begin(), delta_z_long_tail.end(), 0.0) / delta_z_long_tail.size();
+            // float az_now = std::accumulate(delta_z_long_tail.begin(), delta_z_long_tail.end(), 0.0) / delta_z_long_tail.size();
 
-            float delta_z = 0;
-            if (az_now > az_old)
-                delta_z = az_now - az_old;
-            else
-                delta_z = az_old - az_now;
-            az_old = az_now;
+            // float delta_z = 0;
+            // if (az_now > az_old)
+            //     delta_z = az_now - az_old;
+            // else
+            //     delta_z = az_old - az_now;
+            // az_old = az_now;
         }
 
-        vTaskDelay(SENSOR_READ_RATE / portTICK_PERIOD_MS);
+        vTaskDelay(ACEL_READ_RATE / portTICK_PERIOD_MS);
     }
 }

@@ -7,6 +7,7 @@
 #define APP_NAME "COPILOTO"
 #define APP_VERSION "1.1.0"
 
+
 // -----------------------------------------------------------------------------
 // Configuration
 // -----------------------------------------------------------------------------
@@ -87,10 +88,11 @@
 // #define AXP192
 #define CORE_0 0
 #define CORE_1 1
-#define SENSOR_READ_RATE 1000 // 1s
-#define BUZZER_RATE 1
+#define ACEL_READ_RATE 2000 // 1s
+#define BUZZER_RATE 100 // 100ms
 #define GNSS_READ_RATE 5000 // 5s
 #define COPILOT_READ_RATE 1000 // 1s
+#define BARO_READ_RATE 2000 // 1s
 
 // -----------------------------------------------------------------------------
 // GPS
