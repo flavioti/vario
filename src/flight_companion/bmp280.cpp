@@ -32,6 +32,9 @@ std::list<float> vario_avg = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0,
 
 void baro_task(void *pvParameters)
 {
+    // Aguarda execução para aguadar leitura dos dispositivos
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     for (;;)
     {
 
@@ -71,7 +74,7 @@ void baro_task(void *pvParameters)
         Serial.println("[BMP280] Sending message to queue xQueueVario");
 #endif
         xQueueSend(xQueueBaro, &data, (TickType_t)0);
-#ifdef XDEBUG
+#ifdef XDEBUG_MEMORY
         UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
         Serial.printf("BaroTask size: %i words\n", uxHighWaterMark);
 #endif

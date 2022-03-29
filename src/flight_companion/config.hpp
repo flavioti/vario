@@ -18,7 +18,6 @@
 
 #if defined(ESP32_WROOM_32)
 
-
 // GPIO 13
 #define GPIO_13             13
 #define PORT_PHISICAL_20    GPIO_13
@@ -63,6 +62,8 @@
 
 #define BMP280_ADDRESS      0x76
 
+#define USE_ESPNOW
+
 #endif
 
 
@@ -91,7 +92,7 @@
 #define ACEL_READ_RATE 2000 // 1s
 #define BUZZER_RATE 100 // 100ms
 #define GNSS_READ_RATE 5000 // 5s
-#define COPILOT_READ_RATE 1000 // 1s
+#define COPILOT_READ_RATE 10000 // 1s
 #define BARO_READ_RATE 2000 // 1s
 
 // -----------------------------------------------------------------------------

@@ -38,6 +38,9 @@ int16_t az_old;
 
 void accel_task(void *pvParameters)
 {
+    // Aguarda execução para aguadar leitura dos dispositivos
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     for (;;)
     {
         if (!xQueueIsQueueFullFromISR(xQueueBuzzerDeltaAZ))

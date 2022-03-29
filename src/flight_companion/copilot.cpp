@@ -1,41 +1,137 @@
 #include <FreeRTOS.h>
 
+#include <WiFi.h>
+#include <esp_now.h>
+
 #include <flight_companion/config.hpp>
 #include <flight_companion/queue.hpp>
 #include <flight_companion/screen.hpp>
 #include <flight_companion/copilot.hpp>
+#include <model/espnow_message.hpp>
 
 struct gnss_struct gnss_data;
 struct baro_struct baro_data;
 
+static bool PEER_ADDED = false;
+
+/////// ESP-NOW
+
+uint8_t broadcastAddress[] = {0x34, 0xAB, 0x95, 0x5D, 0x97, 0x18};
+
+// Create a struct_message called myData
+metrics_data myData;
+
+esp_now_peer_info_t peerInfo;
+
+void OnDataSent(const uint8_t *mac_addr, esp_now_send_status_t status)
+{
+    if (status == ESP_NOW_SEND_FAIL)
+    {
+        Serial.println("[CORE][ESPNOW] data sent.....: FAILED");
+    }
+    else
+    {
+        Serial.println("[CORE][ESPNOW] data sent.....: SUCCESS");
+    }
+}
+
+void setup_esp_now()
+{
+    // Set device as a Wi-Fi Station
+    WiFi.mode(WIFI_STA);
+    WiFi.disconnect();
+
+    // Init ESP-NOW
+    // Guru Meditation Error if wifi is connected
+    if (esp_now_init() == ESP_OK)
+    {
+        PEER_ADDED = true;
+        Serial.println("[COPILOT][ESPNOW] setup .....: OK");
+    }
+    else
+    {
+        Serial.println("[COPILOT][ESPNOW] setup .....: FAILED");
+    }
+
+    // Once ESPNow is successfully Init, we will register for Send CB to
+    // get the status of Trasnmitted packet
+    Serial.println("[ESP-NOW] callback...........: REGISTERED");
+    esp_now_register_send_cb(OnDataSent);
+
+    // Register peer
+    memcpy(peerInfo.peer_addr, broadcastAddress, 6);
+    peerInfo.channel = 0;
+    peerInfo.encrypt = false;
+
+    // Add peer
+    esp_err_t result = esp_now_add_peer(&peerInfo);
+    Serial.println("[COPILOT][ESPNOW] peer status: " + String(esp_err_to_name(result)));
+}
+
+void send_esp_now()
+{
+    // Send message via ESP-NOW
+    esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
+
+    if (result != ESP_OK)
+    {
+        Serial.println("[COPILOT][ESPNOW] status.....: " + String(esp_err_to_name(result)));
+    }
+}
+
+/////// COPILOT LOGIC
+
 void copilot_task(void *pvParameters)
 {
-    Serial.println("[COPILOT] task started");
+    Serial.println("[COPILOT] task status........: STARTED");
+
+    // Aguarda execução para aguadar leitura dos dispositivos
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     for (;;)
     {
-        int qtd = uxQueueMessagesWaiting(xQueueGNSSMetrics);
-        if (qtd > 0)
-        {
 #ifdef XDEBUG
-            Serial.printf("[COPILOT] xQueueGNSSMetrics has %i messages\n", qtd);
+        Serial.println("[COPILOT] task status........: READING MESSAGES");
 #endif
-            struct gnss_struct indata;
-
-            if (xQueueReceive(xQueueGNSSMetrics, &indata, portMAX_DELAY) == pdTRUE)
-            {
-                gnss_data = indata;
-            }
-        }
-
-        qtd = uxQueueMessagesWaiting(xQueueBaro);
-        if (qtd > 0)
+        try
         {
-            struct baro_struct indata;
-
-            if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
+            int qtd = uxQueueMessagesWaiting(xQueueGNSSMetrics);
+            if (qtd > 0)
             {
-                baro_data = indata;
+#ifdef XDEBUG
+                Serial.printf("[COPILOT] xQueueGNSSMetrics has %i messages\n", qtd);
+#endif
+                struct gnss_struct indata;
+
+                if (xQueueReceive(xQueueGNSSMetrics, &indata, portMAX_DELAY) == pdTRUE)
+                {
+                    gnss_data = indata;
+                }
             }
+
+            qtd = uxQueueMessagesWaiting(xQueueBaro);
+            if (qtd > 0)
+            {
+                struct baro_struct indata;
+
+                if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
+                {
+                    baro_data = indata;
+                }
+            }
+
+            myData.altitude = baro_data.altitude_avg;
+
+#ifdef USE_ESPNOW
+            if (PEER_ADDED)
+            {
+                send_esp_now();
+            }
+#endif
+        }
+        catch (const std::exception &e)
+        {
+            std::cerr << e.what() << '\n';
         }
 
         vTaskDelay(COPILOT_READ_RATE / portTICK_PERIOD_MS);

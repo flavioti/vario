@@ -28,6 +28,9 @@ std::vector<short> vPause = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 50, 200, 600, 1
 
 void buzzer_task(void *pvParameters)
 {
+    // Aguarda execução para aguadar leitura dos dispositivos
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     int duracao = millis() + 2000;
     int pause = 500;
     bool buzzer_buzy = false;
@@ -72,7 +75,7 @@ void buzzer_task(void *pvParameters)
             // }
         }
 
-#ifdef XDEBUG
+#ifdef XDEBUG_MEMORY
         UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
         Serial.printf("BuzzerTask size: %i words\n", uxHighWaterMark);
 #endif

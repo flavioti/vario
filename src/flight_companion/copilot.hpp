@@ -14,4 +14,6 @@ struct system_cache
 
 String getMetrics();
 
+void setup_esp_now();
+
 #endif

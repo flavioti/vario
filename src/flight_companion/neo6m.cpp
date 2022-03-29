@@ -22,6 +22,9 @@ void setup_gnss()
 // Tem um codigo na pasta de backup com exemplos de como configurar o GPS
 void gnss_task(void *pvParameters)
 {
+    // Aguarda execução para aguadar leitura dos dispositivos
+    vTaskDelay(5000 / portTICK_PERIOD_MS);
+
     Serial.println("[GNSS] task..................: RUNNING");
     TinyGPSPlus gnss_parser;
     for (;;)
