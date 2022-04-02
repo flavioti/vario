@@ -61,11 +61,3 @@ struct gnss_struct
            " hdop=" + String(hdop);
   }
 };
-
-struct baro_struct
-{
-  uint32_t millis; // Para saber se o dado esta mudando no prometheus
-  float temperature_avg;
-  float pressure_avg;
-  float altitude_avg;
-};

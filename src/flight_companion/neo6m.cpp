@@ -83,7 +83,7 @@ void gnss_task(void *pvParameters)
             data.hdop = gnss_parser.hdop.value();
         }
 
-        xQueueSend(xQueueGNSSMetrics, &data, (TickType_t)0);
+        xQueueSendToBack(xQueueGNSSMetrics, &data, (TickType_t)0);
 
 #ifdef XDEBUG
         int qtd = uxQueueMessagesWaiting(xQueueGNSSMetrics);

@@ -8,6 +8,7 @@
 
 #include <flight_companion/config.hpp>
 #include <flight_companion/queue.hpp>
+#include <model/espnow_message.hpp>
 
 Adafruit_BMP280 bmp280;
 
@@ -30,14 +31,32 @@ bool init_bmp280()
 std::list<float> altitude_avg = {0};
 std::list<float> vario_avg = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
 
+float calc_vario(float altitude)
+{
+    if (vario_avg.size() >= 5)
+    {
+        vario_avg.pop_front();
+    }
+    vario_avg.push_back(altitude);
+
+    float last_vario_avg = std::accumulate(vario_avg.begin(), vario_avg.end(), 0.0) / vario_avg.size();
+
+    float vario = last_vario_avg - altitude;
+    if (vario > 10)
+    {
+        vario = 0;
+    }
+    return vario;
+}
+
 void baro_task(void *pvParameters)
 {
+    Serial.println("[BARO] task..................: RUNNING");
     // Aguarda execução para aguadar leitura dos dispositivos
     vTaskDelay(5000 / portTICK_PERIOD_MS);
 
     for (;;)
     {
-
         std::list<float> altitude_sample = {};
         std::list<float> temp_sample = {};
         std::list<float> pressure_sample = {};
@@ -64,16 +83,35 @@ void baro_task(void *pvParameters)
             }
         }
 
-        struct baro_struct data;
-        data.millis = millis();
-        data.temperature_avg = std::accumulate(temp_sample.begin(), temp_sample.end(), 0.0) / temp_sample.size();
-        data.pressure_avg = std::accumulate(pressure_sample.begin(), pressure_sample.end(), 0.0) / pressure_sample.size();
-        data.altitude_avg = std::accumulate(altitude_sample.begin(), altitude_sample.end(), 0.0) / altitude_sample.size();
+        float temperature = std::accumulate(temp_sample.begin(), temp_sample.end(), 0.0) / temp_sample.size();
+        float pressure = std::accumulate(pressure_sample.begin(), pressure_sample.end(), 0.0) / pressure_sample.size();
+        float altitude = std::accumulate(altitude_sample.begin(), altitude_sample.end(), 0.0) / altitude_sample.size();
+
+        if (temperature > 99)
+        {
+            temperature = 0;
+        }
+
+        if (pressure > 9999)
+        {
+            pressure = 0;
+        }
+
+        if (altitude > 9999)
+        {
+            altitude = 0;
+        }
+
+        struct baro_struct_t data;
+        data.temperature = ((int)(temperature * 100 + .5) / 100.0); // arredonda
+        data.pressure = ((int)(pressure * 100 + .5) / 100.0);       // arredonda
+        data.altitude = ((int)(altitude * 100 + .5) / 100.0);       // arredonda
+        data.vario = calc_vario(altitude);
 
 #ifdef XDEBUG
         Serial.println("[BMP280] Sending message to queue xQueueVario");
 #endif
-        xQueueSend(xQueueBaro, &data, (TickType_t)0);
+        xQueueSendToBack(xQueueBaro, &data, (TickType_t)0);
 #ifdef XDEBUG_MEMORY
         UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
         Serial.printf("BaroTask size: %i words\n", uxHighWaterMark);
@@ -121,9 +159,6 @@ void baro_task(void *pvParameters)
 //         float temperature_avg = std::accumulate(temp_sample.begin(), temp_sample.end(), 0.0) / temp_sample.size();
 //         float pressure_avg = std::accumulate(pressure_sample.begin(), pressure_sample.end(), 0.0) / pressure_sample.size();
 //         float altitude_avg = std::accumulate(altitude_sample.begin(), altitude_sample.end(), 0.0) / altitude_sample.size();
-
-//         // Serial.print("Altitude: ");
-//         // Serial.println(altitude_avg);
 
 //         // Média das últimas leituras (somente altitude)
 //         // if (altitude_avg.size() >= VARIO_BMP280_SAMPLES)

@@ -10,7 +10,7 @@
 #include <model/espnow_message.hpp>
 
 struct gnss_struct gnss_data;
-struct baro_struct baro_data;
+struct baro_struct_t baro_data;
 
 static bool PEER_ADDED = false;
 
@@ -46,11 +46,11 @@ void setup_esp_now()
     if (esp_now_init() == ESP_OK)
     {
         PEER_ADDED = true;
-        Serial.println("[COPILOT][ESPNOW] setup .....: OK");
+        Serial.println("\n[COPILOT][ESPNOW] setup .....: OK");
     }
     else
     {
-        Serial.println("[COPILOT][ESPNOW] setup .....: FAILED");
+        Serial.println("\n[COPILOT][ESPNOW] setup .....: FAILED");
     }
 
     // Once ESPNow is successfully Init, we will register for Send CB to
@@ -72,7 +72,6 @@ void send_esp_now()
 {
     // Send message via ESP-NOW
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
-
     if (result != ESP_OK)
     {
         Serial.println("[COPILOT][ESPNOW] status.....: " + String(esp_err_to_name(result)));
@@ -102,7 +101,6 @@ void copilot_task(void *pvParameters)
                 Serial.printf("[COPILOT] xQueueGNSSMetrics has %i messages\n", qtd);
 #endif
                 struct gnss_struct indata;
-
                 if (xQueueReceive(xQueueGNSSMetrics, &indata, portMAX_DELAY) == pdTRUE)
                 {
                     gnss_data = indata;
@@ -112,15 +110,16 @@ void copilot_task(void *pvParameters)
             qtd = uxQueueMessagesWaiting(xQueueBaro);
             if (qtd > 0)
             {
-                struct baro_struct indata;
-
+                struct baro_struct_t indata;
                 if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
                 {
                     baro_data = indata;
                 }
             }
-
-            myData.altitude = baro_data.altitude_avg;
+            myData.baro_data.altitude = baro_data.altitude;
+            myData.baro_data.temperature = baro_data.temperature;
+            myData.baro_data.pressure = baro_data.pressure;
+            myData.baro_data.vario = baro_data.vario;
 
 #ifdef USE_ESPNOW
             if (PEER_ADDED)
@@ -169,9 +168,9 @@ String getMetrics()
     // setMetric2(&p, "esp32_battery_percentage", String(sys_cache2.battery_percentage));
     // setMetric2(&p, "esp32_power_down_voltage", String(sys_cache2.power_down_voltage));
 
-    setMetric2(&p, "baro_temperature", String(baro_data.temperature_avg));
-    setMetric2(&p, "baro_pressure", String(baro_data.pressure_avg));
-    setMetric2(&p, "baro_altitude", String(baro_data.altitude_avg));
+    setMetric2(&p, "baro_temperature", String(baro_data.temperature));
+    setMetric2(&p, "baro_pressure", String(baro_data.pressure));
+    setMetric2(&p, "baro_altitude", String(baro_data.altitude));
 
     setMetric2(&p, "gnss_altitude", String(gnss_data.altitude_meters));
     setMetric2(&p, "gnss_latitude", String(gnss_data.location_lat, 6));

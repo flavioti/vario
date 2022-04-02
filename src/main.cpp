@@ -15,9 +15,6 @@
 #include <esp_now.h>
 #include <WiFi.h>
 
-#include <flight_display/Button2.h>
-#include <flight_display/lilygo.h>
-#include <flight_display/logo.h>
 #include <flight_display/queue.hpp>
 #include <flight_display/display.hpp>
 #include <model/espnow_message.hpp>
@@ -30,10 +27,6 @@ TaskHandle_t DisplayTaskHandler;
 
 TwoWire I2CBME = TwoWire(0);
 
-Button2 btn1(BUTTON_1);
-Button2 btn2(BUTTON_2);
-Button2 btn3(BUTTON_3);
-
 int state = 0;
 
 uint8_t broadcastAddress[] = {0x8C, 0xAA, 0xB5, 0x84, 0xDC, 0x48};
@@ -43,11 +36,13 @@ void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
     // Envia dados de entrada para fila para que possam
     // ser consumidos pela task de display
-    xQueueSend(xQueueMetrics, incomingData, 2);
+    xQueueSendToBack(xQueueMetrics, incomingData, 10);
 }
 
 void setup()
 {
+    setCpuFrequencyMhz(80);
+
     Serial.begin(9600);
     while (!Serial)
         sleep(1);
@@ -63,25 +58,35 @@ void setup()
     }
 
     esp_now_register_recv_cb(OnDataRecv);
-
-    DrawLabelAndElement();
-
 }
 
-unsigned long next_run = millis();
+int one_second = 1000;
+int one_minute = 60000;
+
+unsigned long elapsed_time_100_milli = millis();
+unsigned long elapsed_time_1_second = millis();
+unsigned long elapsed_time_1_minute = millis();
 
 void loop()
 {
-    btn1.loop();
-    btn2.loop();
-    btn3.loop();
+    collect_metrics();
+    display_mutable_elements();
 
-    if (next_run < millis())
-    {
-        next_run = millis() + 1000;
+    // if (elapsed_time_100_milli < millis())
+    // {
+    //     elapsed_time_100_milli = millis() + 100;
+    // }
 
-        display_task();
-    }
+    // if (elapsed_time_1_second < millis())
+    // {
+    //     elapsed_time_1_second = millis() + one_second;
+    // }
+
+    // if (elapsed_time_1_minute < millis())
+    // {
+    //     calc_battery();
+    //     elapsed_time_1_minute = millis() + one_minute; // 1 min
+    // }
 }
 
 #endif
@@ -127,6 +132,8 @@ void print_diagnostics()
 
 void setup()
 {
+    setCpuFrequencyMhz(80);
+
     // Aguarda 1 segundo para não bugar o texto do terminal
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 
@@ -170,11 +177,9 @@ void setup()
     setup_esp_now();
 #else
     connect_wifi();
-#endif
-
     // Levanta servidor HTTP interno
     config_web_server();
-
+#endif
     Serial.println("[CORE] setup done");
 }
 

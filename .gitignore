@@ -5,9 +5,9 @@
 .vscode/ipch
 temp/
 .vscode/extensions.json
-
 .vscode/settings.json
 devtools/insightsapi/__pycache__/metrics.cpython-39.pyc
 .env
 src/secrets.hpp
 src/flight_companion/secrets.hpp
+*.log

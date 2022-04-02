@@ -92,8 +92,8 @@
 #define ACEL_READ_RATE 2000 // 1s
 #define BUZZER_RATE 100 // 100ms
 #define GNSS_READ_RATE 5000 // 5s
-#define COPILOT_READ_RATE 10000 // 1s
-#define BARO_READ_RATE 2000 // 1s
+#define COPILOT_READ_RATE 100 // 1s
+#define BARO_READ_RATE 100 // 1s
 
 // -----------------------------------------------------------------------------
 // GPS
