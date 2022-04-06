@@ -12,24 +12,19 @@ void setup_mpu6050()
     Wire.begin();
     Serial.println("[MPU6050] accelgyro initializing");
     accelgyro.initialize();
-    Serial.println("[MPU6050] accelgyro ...................: OK");
-
-    Serial.println("[MPU6050] Testing device connections");
     if (accelgyro.testConnection())
     {
-        Serial.println("[MPU6050] connection status ...........: OK");
+        Serial.println("[MPU6050] connection status .: OK");
         accelgyro.setDMPEnabled(true);
         accelgyro.setTempSensorEnabled(true);
-
-        // Serial.println("[MPU6050] calibrating accel");
-        // accelgyro.CalibrateAccel();
-
-        // Serial.println("\n[MPU6050] calibrating gyro");
-        // accelgyro.CalibrateGyro();
+        Serial.println("[MPU6050] ...................: calibrating accel");
+        accelgyro.CalibrateAccel();
+        Serial.println("[MPU6050] ...................: calibrating gyro");
+        accelgyro.CalibrateGyro();
     }
     else
     {
-        Serial.println("[MPU6050] connection status ...........: FAILED");
+        Serial.println("[MPU6050] connection status .: FAILED");
     }
 }
 

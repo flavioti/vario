@@ -18,12 +18,12 @@ bool init_bmp280()
     boolean status = bmp280.begin(BMP280_ADDRESS);
     if (status)
     {
-        Serial.println("[BMP280] connection status.............: OK");
+        Serial.println("[BMP280] connection status...: OK");
         return true;
     }
     else
     {
-        Serial.println("[BMP280] connection status.............: FAILED");
+        Serial.println("[BMP280] connection status...: FAILED");
         return false;
     }
 }

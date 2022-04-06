@@ -64,7 +64,14 @@
 
 #define USE_ESPNOW
 
-#endif
+// Menor = Menos prioridade
+#define BUZZ_TASK_PRIORITY  (20 |portPRIVILEGE_BIT)
+#define COPI_TASK_PRIORITY  (15 |portPRIVILEGE_BIT)
+#define BARO_TASK_PRIORITY  (10 |portPRIVILEGE_BIT)
+#define GNSS_TASK_PRIORITY  (5 |portPRIVILEGE_BIT)
+#define ACEL_TASK_PRIORITY  (1 |portPRIVILEGE_BIT)
+
+#endif // if defined(ESP32_WROOM_32)
 
 
 
@@ -86,14 +93,13 @@
 // CORE
 // -----------------------------------------------------------------------------
 
-// #define AXP192
 #define CORE_0 0
 #define CORE_1 1
 #define ACEL_READ_RATE 2000 // 1s
 #define BUZZER_RATE 100 // 100ms
 #define GNSS_READ_RATE 5000 // 5s
-#define COPILOT_READ_RATE 100 // 1s
-#define BARO_READ_RATE 100 // 1s
+#define COPILOT_READ_RATE 500 // 1s
+#define BARO_READ_RATE 1000 // 1s
 
 // -----------------------------------------------------------------------------
 // GPS

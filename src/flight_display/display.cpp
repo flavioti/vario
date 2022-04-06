@@ -153,8 +153,8 @@ void DrawSmartInt(int x, int y, int w, int h, smart_int_type_struct &field, bool
         char *data = const_cast<char *>(text.c_str());
         // write_string(&currentFont, data, &cursor_x, &cursor_y, NULL);
         // writeln(&currentFont, data, &cursor_x, &cursor_y, NULL);
-        Rect_t aaa = write_mode(&currentFont, data, &cursor_x, &cursor_y, NULL, BLACK_ON_WHITE, NULL);
-        Serial.println("x " + String(aaa.x) + " y " + String(aaa.y) + " w " + String(aaa.width) + " h " + String(aaa.height));
+        write_mode(&currentFont, data, &cursor_x, &cursor_y, NULL, BLACK_ON_WHITE, NULL);
+        // Serial.println("x " + String(aaa.x) + " y " + String(aaa.y) + " w " + String(aaa.width) + " h " + String(aaa.height));
         // ESP_LOGE("TTT", "SSSSSSSSSSSS");
     }
 }

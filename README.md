@@ -15,3 +15,11 @@ BMP280
 - SDA - D21
 
 
+MICRO SD CARD ADAPTER
+
+- VCC   - VIN(5V)
+- GND   - GND(VIN)
+- MISO  -
+- MOSI
+- SCK
+- CS

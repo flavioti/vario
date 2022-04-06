@@ -13,8 +13,7 @@ void setup_gnss()
 {
     Wire.begin(21, 22);
     SerialGNSS.begin(9600, SERIAL_8N1, GPS_RX_PIN, GPS_TX_PIN);
-
-    Serial.println("[GNSS] baud rate.............: " + String(SerialGNSS.baudRate()));
+    Serial.println("\n[GNSS] baud rate.............: " + String(SerialGNSS.baudRate()));
     Serial.println("[GNSS] availability check....: " + SerialGNSS.available() > 0 ? "OK" : "FAILED");
 }
 

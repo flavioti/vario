@@ -13,7 +13,7 @@ bool setup_screen()
     bool display_status = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
     if (display_status)
     {
-        Serial.println("[SSD1306] status.......................: OK");
+        Serial.println("[SSD1306] status ............: OK");
 
         // Tela padrão inicial
         display.display();
@@ -36,7 +36,7 @@ bool setup_screen()
     }
     else
     {
-        Serial.println("[SSD1306] status.......................: FAILED");
+        Serial.println("[SSD1306] status ............: FAILED");
     }
 
     return display_status;
