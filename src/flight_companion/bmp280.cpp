@@ -12,7 +12,7 @@
 
 Adafruit_BMP280 bmp280;
 
-bool init_bmp280()
+bool initBMP280()
 {
     Serial.println("[BMP280] ....................: INIT");
     boolean status = bmp280.begin(BMP280_ADDRESS);
@@ -108,10 +108,10 @@ void baro_task(void *pvParameters)
         data.altitude = ((int)(altitude * 100 + .5) / 100.0);       // arredonda
         data.vario = calc_vario(altitude);
 
-#ifdef XDEBUG
+#ifdef XDEBUG2
         Serial.println("[BMP280] Sending message to queue xQueueVario");
 #endif
-        xQueueSendToBack(xQueueBaro, &data, (TickType_t)0);
+        xQueueSendToBack(xQueueBaro, &data, (TickType_t)10);
 #ifdef XDEBUG_MEMORY
         UBaseType_t uxHighWaterMark = uxTaskGetStackHighWaterMark(NULL);
         Serial.printf("BaroTask size: %i words\n", uxHighWaterMark);

@@ -84,11 +84,6 @@ void gnss_task(void *pvParameters)
 
         xQueueSendToBack(xQueueGNSSMetrics, &data, (TickType_t)0);
 
-#ifdef XDEBUG
-        int qtd = uxQueueMessagesWaiting(xQueueGNSSMetrics);
-        Serial.printf("[GNSS] xQueueGNSSMetrics has %i messages\n", qtd);
-#endif
-
         vTaskDelay(GNSS_READ_RATE / portTICK_PERIOD_MS);
     } // for
 }

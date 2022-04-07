@@ -80,25 +80,32 @@ void send_esp_now()
 
 /////// COPILOT LOGIC
 
+// TODO: Alterar o delay conforme a quantidade de mensagens na fila
 void copilot_task(void *pvParameters)
 {
-    Serial.println("[COPILOT] task status........: STARTED");
-
+    Serial.println("[COPILOT] task ..............: STARTED");
     // Aguarda execução para aguadar leitura dos dispositivos
     vTaskDelay(5000 / portTICK_PERIOD_MS);
-
     for (;;)
     {
-#ifdef XDEBUG
-        Serial.println("[COPILOT] task status........: READING MESSAGES");
-#endif
         try
         {
-            int qtd = uxQueueMessagesWaiting(xQueueGNSSMetrics);
-            if (qtd > 0)
+            if (uxQueueMessagesWaiting(xQueueBaro) > 0)
             {
 #ifdef XDEBUG
-                Serial.printf("[COPILOT] xQueueGNSSMetrics has %i messages\n", qtd);
+                Serial.printf("[COPILOT] xQueueBaro has %i messages\n", uxQueueMessagesWaiting(xQueueBaro));
+#endif
+                struct baro_struct_t indata;
+                if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
+                {
+                    baro_data = indata;
+                }
+            }
+
+            if (uxQueueMessagesWaiting(xQueueGNSSMetrics) > 0)
+            {
+#ifdef XDEBUG
+                Serial.printf("[COPILOT] xQueueGNSSMetrics has %i messages\n", uxQueueMessagesWaiting(xQueueGNSSMetrics));
 #endif
                 struct gnss_struct indata;
                 if (xQueueReceive(xQueueGNSSMetrics, &indata, portMAX_DELAY) == pdTRUE)
@@ -107,8 +114,7 @@ void copilot_task(void *pvParameters)
                 }
             }
 
-            qtd = uxQueueMessagesWaiting(xQueueBaro);
-            if (qtd > 0)
+            if (uxQueueMessagesWaiting(xQueueBaro) > 0)
             {
                 struct baro_struct_t indata;
                 if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
@@ -120,6 +126,16 @@ void copilot_task(void *pvParameters)
             myData.baro_data.temperature = baro_data.temperature;
             myData.baro_data.pressure = baro_data.pressure;
             myData.baro_data.vario = baro_data.vario;
+
+            // BUZZER
+
+            float vario = myData.baro_data.vario;
+            {
+                if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
+                {
+                    xQueueSendToBack((QueueHandle_t)xQueueBuzzer, &vario, (TickType_t)0);
+                }
+            }
 
 #ifdef USE_ESPNOW
             if (PEER_ADDED)

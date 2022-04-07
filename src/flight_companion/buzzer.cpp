@@ -1,23 +1,29 @@
-#include <map>
-#include <flight_companion/queue.hpp>
-#include <Arduino.h>
-#include "FreeRTOS.h"
-#include <flight_companion/config.hpp>
+#include <flight_companion/buzzer.hpp>
+
+bool initBuzzer()
+{
+    ledcSetup(BUZZER_CHANNEL, BUZZER_DEFAULT_FREQUENCY, BUZZER_RESOLUTION_BITS);
+    ledcAttachPin(BUZZER_PIN, BUZZER_CHANNEL);
+    ledcWriteTone(BUZZER_CHANNEL, 100);
+    delay(500);
+    ledcWriteTone(BUZZER_CHANNEL, 0);
+    return true;
+}
 
 void tone(uint8_t pin, unsigned int frequency, uint8_t channel)
 {
     if (ledcRead(channel))
     {
-        log_e("Tone channel %d is already in use", ledcRead(channel));
+        Serial.printf("Tone channel %d is already in use\n", ledcRead(channel));
         return;
     }
-    ledcAttachPin(pin, channel);
+    // ledcAttachPin(pin, channel);
     ledcWriteTone(channel, frequency);
 }
 
 void noTone(uint8_t pin, uint8_t channel)
 {
-    ledcDetachPin(pin);
+    // ledcDetachPin(pin);
     ledcWrite(channel, 0);
 }
 
@@ -45,34 +51,31 @@ void buzzer_task(void *pvParameters)
         }
         else
         {
-            // float vario;
-            // if (xQueueReceive(xQueueVario, &vario, 0))
-            // {
-            //     if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
-            //     {
-            //         for (int i = 0; i < vVariation.size(); i++)
-            //         {
-            //             float range1 = vVariation[i];
-            //             float range2 = vVariation[i + 1];
-            //             if (vario >= range1 && vario < range2)
-            //             {
-            //                 Serial.print("i: ");
-            //                 Serial.print("Vario: ");
-            //                 Serial.println(i);
-            //                 Serial.println(vario);
+            float vario;
+            if (xQueueReceive(xQueueBuzzer, &vario, 0))
+            {
+                for (int i = 0; i < vVariation.size(); i++)
+                {
+                    float range1 = vVariation[i];
+                    float range2 = vVariation[i + 1];
+                    if (vario >= range1 && vario < range2)
+                    {
+                        Serial.print("i: ");
+                        Serial.print("Vario: ");
+                        Serial.println(i);
+                        Serial.println(vario);
 
-            //                 if (!buzzer_buzy)
-            //                 {
-            //                     buzzer_buzy = true;
-            //                     noTone(BUZZER_PIN, BUZZER_CHANNEL);
-            //                     tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
-            //                     duracao = millis() + vLength[i];
-            //                     pause = vPause[i];
-            //                 }
-            //             }
-            //         }
-            //     }
-            // }
+                        if (!buzzer_buzy)
+                        {
+                            buzzer_buzy = true;
+                            noTone(BUZZER_PIN, BUZZER_CHANNEL);
+                            tone(BUZZER_PIN, vFrequency[i], BUZZER_CHANNEL);
+                            duracao = millis() + vLength[i];
+                            pause = vPause[i];
+                        }
+                    }
+                }
+            }
         }
 
 #ifdef XDEBUG_MEMORY
@@ -84,7 +87,6 @@ void buzzer_task(void *pvParameters)
 
     } // for
 }
-
 
 void play_welcome_beep_task(void *pvParameters)
 {
@@ -100,7 +102,14 @@ void play_welcome_beep_task(void *pvParameters)
 
 void play_welcome_beep()
 {
-    xTaskCreatePinnedToCore(play_welcome_beep_task, "play_welcome_beep_task", 1024, NULL, 10, NULL, CORE_1);
+    Serial.println("play_welcome_beep");
+    // xTaskCreatePinnedToCore(play_welcome_beep_task, "play_welcome_beep_task", 1024, NULL, 10, NULL, CORE_1);
+    noTone(15, 0);
+    // tone(BUZZER_PIN, 1600, 0);
+    // delay(100);
+    // tone(BUZZER_PIN, 2000, 0);
+    // delay(50);
+    // noTone(BUZZER_PIN, 0);
 }
 
 void play_beep_screen_error()

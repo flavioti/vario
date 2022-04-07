@@ -1,7 +1,7 @@
 #ifndef SCREEN_HPP
 #define SCREEN_HPP
 
-bool setup_screen();
+bool initOLED();
 
 void display_vario(float vario);
 

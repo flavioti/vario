@@ -109,13 +109,16 @@ void loop()
 #include <flight_companion/mpu6050.hpp>
 #include <flight_companion/neo6m.hpp>
 #include <flight_companion/copilot.hpp>
+#include <CopilotSDCard.h>
 
 // STATUS
 
-static int BARO = 0;
-// static int ACEL = 1;
-static int OLED = 2;
-bool component_status[4] = {false, false, false};
+static int BARO_IDX = 0;
+static int ACEL_IDX = 1;
+static int OLED_IDX = 2;
+static int SDCARD_IDX = 3;
+static int BUZZER_IDX = 4;
+bool component_status[5] = {false, false, false, false, false};
 
 TaskHandle_t CopilotTaskHandler;
 TaskHandle_t BuzzerTaskHandler;
@@ -123,14 +126,25 @@ TaskHandle_t BaroTaskHandler;
 TaskHandle_t AccelTaskHandler;
 TaskHandle_t GNSSTaskHandler;
 
-void print_diagnostics()
+void print_esp32_diagnostics()
 {
-    Serial.println("[CORE] cpu frequency.........: " + String(ESP.getCpuFreqMHz()) + " MHz");
+    Serial.println("[CORE] esp cpu frequency ....: " + String(ESP.getCpuFreqMHz()) + " MHz");
+    Serial.println("[CORE] esp chip cores .......: " + String(ESP.getChipCores()) + " core(s)");
+    Serial.println("[CORE] esp chip model .......: " + String(ESP.getChipModel()));
+    Serial.println("[CORE] esp chip revision ....: " + String(ESP.getChipRevision()));
+    Serial.println("[CORE] esp cycle count ......: " + String(ESP.getCycleCount()));
+    // Serial.println("[CORE] esp efuse mac ......: " + ESP.getEfuseMac()); // Causa kernel panic
+    Serial.println("[CORE] esp flash chip mode ..: " + String(ESP.getFlashChipMode()));
+    Serial.println("[CORE] esp flash chip size ..: " + String(ESP.getFlashChipSize() / 1024) + " kbytes");
+    Serial.println("[CORE] esp flash chip speed .: " + String(ESP.getFlashChipSpeed() / 1000 / 1000) + " MHz");
+    Serial.println("[CORE] esp heap size ........: " + String(ESP.getHeapSize() / 1024) + " kbytes");
+    Serial.println("[CORE] esp sdk version.......: " + String(ESP.getSdkVersion()));
+    Serial.println("[CORE] esp sketch size ......: " + String(ESP.getSketchSize() / 1024) + " kbytes");
 }
 
 void setup()
 {
-    setCpuFrequencyMhz(80);
+    setCpuFrequencyMhz(240);
 
     // Aguarda 1 segundo para não bugar o texto do terminal
     vTaskDelay(1000 / portTICK_PERIOD_MS);
@@ -141,30 +155,32 @@ void setup()
 
     Serial.println("[CORE] Serial started");
 
-    print_diagnostics();
+    print_esp32_diagnostics();
 
-    analogReadResolution(12);      // Define para resolução de 12 bits
-    pinMode(BUZZER_PIN, OUTPUT);   // Define o pino do buzzer como saída
-    pinMode(LED_BUILTIN, OUTPUT);  // Define o pino do LED como saída
-    digitalWrite(BUZZER_PIN, LOW); // Desliga LED built-in
+    analogReadResolution(12);       // Define para resolução de 12 bits
+    pinMode(BUZZER_PIN, OUTPUT);    // Define o pino do buzzer como saída
+    pinMode(LED_BUILTIN, OUTPUT);   // Define o pino do LED como saída
+    digitalWrite(BUZZER_PIN, HIGH); // LED built-in
 
     // Dispositivos
 
-    component_status[OLED] = setup_screen(); // Configura tela OLED
-    component_status[BARO] = init_bmp280();  // Configura barômetro
-    setup_mpu6050();                         // Configura aceletômetro
-    setup_gnss();                            // Configura GNSS
+    component_status[BUZZER_IDX] = initBuzzer();
+    component_status[SDCARD_IDX] = initSDCard(); // Configura o cartão SD
+    component_status[OLED_IDX] = initOLED();     // Configura tela OLED
+    component_status[BARO_IDX] = initBMP280();   // Configura barômetro
+    setup_mpu6050();                             // Configura aceletômetro
+    setup_gnss();                                // Configura GNSS
 
     // Tarefas
 
     xTaskCreatePinnedToCore(copilot_task, "copilot_task", 5000, NULL, COPI_TASK_PRIORITY, &CopilotTaskHandler, 0);
     xTaskCreatePinnedToCore(gnss_task, "gnss_task", 5000, NULL, GNSS_TASK_PRIORITY, &GNSSTaskHandler, CORE_1);
 
-    if (component_status[BARO])
+    if (component_status[BARO_IDX])
     {
         // Se o barometro não for detectado, não habilita tarefas
         // do buzzer nem do barometro
-        // xTaskCreatePinnedToCore(buzzer_task, "bssuzzer_task", 1024, NULL, BUZZ_TASK_PRIORITY, &BuzzerTaskHandler, CORE_1);
+        xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, BUZZ_TASK_PRIORITY, &BuzzerTaskHandler, CORE_1);
         xTaskCreatePinnedToCore(baro_task, "baro_task", 2048, NULL, BARO_TASK_PRIORITY, &BaroTaskHandler, CORE_1);
     }
 
@@ -178,7 +194,7 @@ void setup()
     // Levanta servidor HTTP interno
     config_web_server();
 #endif
-    Serial.println("[CORE] setup done");
+    Serial.println("[CORE] setup ................: FINISHED");
 }
 
 unsigned long min_next_loop_millis = 0;

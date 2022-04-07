@@ -1,15 +1,19 @@
 
-#ifndef BUZZER_H_
-#define BUZZER_H_
+#ifndef _BUZZER_H_
+#define _BUZZER_H_
+
+#include <map>
+#include <flight_companion/queue.hpp>
+#include <Arduino.h>
+#include "FreeRTOS.h"
+#include <flight_companion/config.hpp>
+
+bool initBuzzer();
 
 void play_welcome_beep();
 
 void buzzer_task(void *pvParameters);
 
 void play_beep_screen_error(void *pvParameters);
-
-void noTone(uint8_t pin, uint8_t channel);
-
-void tone(uint8_t pin, unsigned int frequency, uint8_t channel);
 
 #endif

@@ -17,9 +17,11 @@ BMP280
 
 MICRO SD CARD ADAPTER
 
-- VCC   - VIN(5V)
-- GND   - GND(VIN)
-- MISO  -
-- MOSI
-- SCK
-- CS
+Requer 5V, os 4.5 que o esp32 fornece não são suficientes...
+
+- VCC   -   VIN(5V)
+- GND   -   GND(VIN)
+- MISO  -   19
+- MOSI  -   23
+- SCK   -   18
+- CS    -   5

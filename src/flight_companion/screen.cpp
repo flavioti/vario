@@ -7,7 +7,7 @@
 
 Adafruit_SSD1306 display(128, 64, &Wire, -1);
 
-bool setup_screen()
+bool initOLED()
 {
     // Mesmo sem display conectado, essa função retorna verdadeiro... serve pra nada.
     bool display_status = display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS);
