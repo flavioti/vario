@@ -1,7 +1,10 @@
 #ifndef COPILOT_H_INCLUDED
 #define COPILOT_H_INCLUDED
 
-void copilot_task(void *pvParameters);
+#include <Arduino.h>
+
+void setup_copilot();
+void loop_copilot();
 
 struct system_cache
 {

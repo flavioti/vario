@@ -69,8 +69,19 @@ struct display_baro_struct
     smart_float_type_struct vario;
 };
 
+struct display_gnss_struct
+{
+    smart_float_type_struct latitude;
+    smart_float_type_struct longitude;
+    smart_float_type_struct altitude;
+    smart_float_type_struct speed;
+    smart_int_type_struct course;
+    smart_int_type_struct satellites;
+};
+
 typedef struct DisplayBuffer
 {
     display_baro_struct baro;
+    display_gnss_struct gnss;
     display_sysinfo_struct sysinfo;
 } DisplayBuffer;

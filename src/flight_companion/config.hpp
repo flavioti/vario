@@ -59,8 +59,6 @@
 #define SCREEN_HEIGHT 64 // OLED display height, in pixels
 #define OLED_RESET -1    // Reset pin # (or -1 if sharing Arduino reset pin)
 
-#define BMP280_ADDRESS 0x76
-
 #define USE_ESPNOW
 
 // Menor = Menos prioridade
@@ -92,12 +90,12 @@
 
 #define CORE_0 0
 #define CORE_1 1
-#define BASE_RATE 100
-#define COPILOT_READ_RATE BASE_RATE + 100 // 1s
+#define BASE_RATE 10
+#define COPILOT_READ_RATE BASE_RATE + 10 // 1s
 #define ACEL_READ_RATE BASE_RATE + 2000   // 1s
 #define BUZZER_RATE BASE_RATE + 0         // 100ms
 #define GNSS_READ_RATE BASE_RATE + 2000   // 5s
-#define BARO_READ_RATE BASE_RATE + 100   // 1s
+#define BARO_READ_RATE BASE_RATE + 20   // 1s
 
 // -----------------------------------------------------------------------------
 // GPS
@@ -107,17 +105,11 @@
 #define GPS_BAUDRATE 9600
 
 // -----------------------------------------------------------------------------
-// BMP280
-// -----------------------------------------------------------------------------
-
-#define VARIO_BMP280_SAMPLES 5
-
-// -----------------------------------------------------------------------------
 // VARIO
 // -----------------------------------------------------------------------------
 
 #define VARIO_SINK_THRESHOLD_SINK -2.0 // default -1.0 ms/s
-#define VARIO_SINK_THRESHOLD_LIFT 0.5  // default 0.3 ms/s
+#define VARIO_SINK_THRESHOLD_LIFT 0.3  // default 0.3 ms/s
 
 // Valores para considerar que o dispositivo está em movimento
 #define VARIO_ACCEL_Z_THRESHOLD_SINK -2000

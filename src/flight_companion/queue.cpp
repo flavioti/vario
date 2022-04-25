@@ -2,7 +2,7 @@
 #include "FreeRTOS.h"
 #include "queue.hpp"
 
-#include <model/espnow_message.hpp>
+#include <CopilotMessages.hpp>
 
 QueueHandle_t xQueueBaro = xQueueCreate(5, sizeof(struct baro_struct_t));
 QueueHandle_t xQueueIngressBarometricData = xQueueCreate(1, sizeof(struct BARO_data *));

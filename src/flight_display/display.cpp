@@ -145,7 +145,8 @@ void DrawSmartInt(int x, int y, int w, int h, smart_int_type_struct &field, bool
 {
     if ((redraw) or (field.updated))
     {
-        epd_clear_area({.x = x, .y = y, .width = w, .height = h});
+        epd_clear_area({.x = x, .y = y - 50, .width = w, .height = h});
+
         setFont(OpenSans26);
         int cursor_x = x;
         int cursor_y = y;
@@ -163,7 +164,8 @@ void DrawSmartFlt(int x, int y, int w, int h, smart_float_type_struct &field, bo
 {
     if ((redraw) or (field.updated))
     {
-        Rect_t area = {.x = x, .y = y, .width = w, .height = h};
+        int offset = 50;
+        Rect_t area = {.x = x, .y = y - offset, .width = w, .height = h};
         setFont(OpenSans26);
         int cursor_x = x;
         int cursor_y = y;
@@ -231,35 +233,48 @@ void collect_metrics()
         display_buffer.baro.temperature.setValue(incomingData.baro_data.temperature);
         display_buffer.baro.pressure.setValue(incomingData.baro_data.pressure);
         display_buffer.baro.vario.setValue(incomingData.baro_data.vario);
+
+        display_buffer.gnss.altitude.setValue(incomingData.gnss_data.altitude_meters);
+        display_buffer.gnss.latitude.setValue(incomingData.gnss_data.location_lat);
+        display_buffer.gnss.longitude.setValue(incomingData.gnss_data.location_lng);
     }
 }
 
 unsigned long elapsed_time_5_seconds = 0;
-unsigned long elapsed_time_1_minute_disp = 0;
+unsigned long elapsed_time_A = 0;
 
 void display_mutable_elements()
 {
     bool redraw = false;
-    if (elapsed_time_1_minute_disp < millis())
+    if (elapsed_time_A < millis())
     {
         epd_clear_area(epd_full_screen());
 
-        // setFont(OpenSans8);
-        // drawString(500, 0, "Altitude (metros)", LEFT);
-        // drawString(500, 120, "Temperatura (graus)", LEFT);
-        // drawString(500, 220, "Pressão (hPa)", LEFT);
-        // drawString(500, 320, "Vario (m/s)", LEFT);
+        setFont(OpenSans10B);
+        drawString(400, 90, "Altitude 1", LEFT);
+        drawString(400, 190, "Temperatura", LEFT);
+        drawString(400, 290, "Pressão", LEFT);
+        drawString(400, 390, "Vario m/s", LEFT);
+        drawString(600, 90, "Altitude 2", LEFT);
+        drawString(600, 190, "Longitude", LEFT);
+        drawString(600, 290, "Latitude", LEFT);
+        drawString(600, 390, "Satelites", LEFT);
 
         redraw = true;
-        elapsed_time_1_minute_disp = millis() + 60000;
-        // elapsed_time_1_minute_disp = millis() + 5000;
+        elapsed_time_A = millis() + (60000 * 5);
     }
 
-    DrawSmartInt(500,  50, 150, 60, display_buffer.baro.altitude, redraw);
-    DrawSmartInt(500, 150, 150, 60, display_buffer.baro.temperature, redraw);
-    DrawSmartInt(500, 250, 150, 60, display_buffer.baro.pressure, redraw);
-    DrawSmartFlt(500, 350, 150, 60, display_buffer.baro.vario, redraw);
-    // DrawEspecificBattery(display_buffer.sysinfo.battery_p, display_buffer.sysinfo.voltage);
+    DrawSmartInt(400, 150, 150, 60, display_buffer.baro.altitude, redraw);
+    DrawSmartInt(400, 250, 150, 60, display_buffer.baro.temperature, redraw);
+    DrawSmartInt(400, 350, 150, 60, display_buffer.baro.pressure, redraw);
+    DrawSmartFlt(400, 450, 200, 60, display_buffer.baro.vario, redraw);
+
+    DrawSmartFlt(600, 150, 150, 60, display_buffer.gnss.altitude, redraw);
+    DrawSmartFlt(600, 250, 150, 60, display_buffer.gnss.longitude, redraw);
+    DrawSmartFlt(600, 350, 150, 60, display_buffer.gnss.latitude, redraw);
+    DrawSmartInt(600, 450, 150, 60, display_buffer.gnss.satellites, redraw);
+
+    DrawEspecificBattery(display_buffer.sysinfo.battery_p, display_buffer.sysinfo.voltage);
 
     if (elapsed_time_5_seconds < millis())
     {

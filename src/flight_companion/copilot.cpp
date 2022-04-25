@@ -1,13 +1,24 @@
 #include <FreeRTOS.h>
-
+#include <Arduino.h>
+#include <esp32-hal-i2c.h>
 #include <WiFi.h>
 #include <esp_now.h>
+#include <Wire.h>
+#include <Adafruit_GFX.h>
+#include <Adafruit_SSD1306.h>
 
 #include <flight_companion/config.hpp>
 #include <flight_companion/queue.hpp>
 #include <flight_companion/screen.hpp>
+#include <bmp280.hpp>
+#include <flight_companion/buzzer.hpp>
+#include <flight_companion/network.hpp>
+#include <flight_companion/mpu6050.hpp>
+#include <neo6m.hpp>
 #include <flight_companion/copilot.hpp>
-#include <model/espnow_message.hpp>
+#include <CopilotSDCard.h>
+#include <CopilotMessages.hpp>
+#include <gps.hpp>
 
 struct gnss_struct gnss_data;
 struct baro_struct_t baro_data;
@@ -70,7 +81,6 @@ void setup_esp_now()
 
 void send_esp_now()
 {
-    // Send message via ESP-NOW
     esp_err_t result = esp_now_send(broadcastAddress, (uint8_t *)&myData, sizeof(myData));
     if (result != ESP_OK)
     {
@@ -78,134 +88,92 @@ void send_esp_now()
     }
 }
 
-/////// COPILOT LOGIC
-
-// TODO: Alterar o delay conforme a quantidade de mensagens na fila
-void copilot_task(void *pvParameters)
+void copilot_task(baro_struct_t baro_data, gnss_struct_t gnss_data)
 {
-    Serial.println("[COPILOT] task ..............: STARTED");
-    // Aguarda execução para aguadar leitura dos dispositivos
-    vTaskDelay(5000 / portTICK_PERIOD_MS);
-    for (;;)
+    myData.gnss_data = gnss_data;
+    myData.baro_data = baro_data;
+
+    Serial.println(myData.baro_data.toString());
+    Serial.println(myData.gnss_data.toString());
+
+    // BUZZER
+
+    float vario = myData.baro_data.vario;
     {
-        try
+        if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
         {
-            if (uxQueueMessagesWaiting(xQueueBaro) > 0)
-            {
-#ifdef XDEBUG
-                Serial.printf("[COPILOT] xQueueBaro has %i messages\n", uxQueueMessagesWaiting(xQueueBaro));
-#endif
-                struct baro_struct_t indata;
-                if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
-                {
-                    baro_data = indata;
-                }
-            }
-
-            if (uxQueueMessagesWaiting(xQueueGNSSMetrics) > 0)
-            {
-#ifdef XDEBUG
-                Serial.printf("[COPILOT] xQueueGNSSMetrics has %i messages\n", uxQueueMessagesWaiting(xQueueGNSSMetrics));
-#endif
-                struct gnss_struct indata;
-                if (xQueueReceive(xQueueGNSSMetrics, &indata, portMAX_DELAY) == pdTRUE)
-                {
-                    gnss_data = indata;
-                }
-            }
-
-            if (uxQueueMessagesWaiting(xQueueBaro) > 0)
-            {
-                struct baro_struct_t indata;
-                if (xQueueReceive(xQueueBaro, &indata, portMAX_DELAY) == pdTRUE)
-                {
-                    baro_data = indata;
-                }
-            }
-            myData.baro_data.altitude = baro_data.altitude;
-            myData.baro_data.temperature = baro_data.temperature;
-            myData.baro_data.pressure = baro_data.pressure;
-            myData.baro_data.vario = baro_data.vario;
-
-            // BUZZER
-
-            float vario = myData.baro_data.vario;
-            {
-                if ((vario <= VARIO_SINK_THRESHOLD_SINK || vario >= VARIO_SINK_THRESHOLD_LIFT))
-                {
-                    xQueueSendToBack((QueueHandle_t)xQueueBuzzer, &vario, (TickType_t)0);
-                }
-            }
-
-#ifdef USE_ESPNOW
-            if (PEER_ADDED)
-            {
-                send_esp_now();
-            }
-#endif
+            xQueueSendToBack((QueueHandle_t)xQueueBuzzer, &vario, (TickType_t)0);
         }
-        catch (const std::exception &e)
-        {
-            std::cerr << e.what() << '\n';
-        }
+    }
 
-        vTaskDelay(COPILOT_READ_RATE / portTICK_PERIOD_MS);
+    if (PEER_ADDED)
+    {
+        send_esp_now();
     }
 }
 
-// METRICAS PARA PROMETHEUS
-
-void setMetric2(String *p, String metric, String value)
+void print_esp32_diagnostics()
 {
-    *p += "# " + metric + "\n";
-    *p += "# TYPE " + metric + " gauge\n";
-    *p += "" + metric + " ";
-    *p += value;
-    *p += "\n";
+    Serial.println("[CORE] esp cpu frequency ....: " + String(ESP.getCpuFreqMHz()) + " MHz");
+    Serial.println("[CORE] esp chip cores .......: " + String(ESP.getChipCores()) + " core(s)");
+    Serial.println("[CORE] esp chip model .......: " + String(ESP.getChipModel()));
+    Serial.println("[CORE] esp chip revision ....: " + String(ESP.getChipRevision()));
+    Serial.println("[CORE] esp cycle count ......: " + String(ESP.getCycleCount()));
+    // Serial.println("[CORE] esp efuse mac ......: " + ESP.getEfuseMac()); // Causa kernel panic
+    Serial.println("[CORE] esp flash chip mode ..: " + String(ESP.getFlashChipMode()));
+    Serial.println("[CORE] esp flash chip size ..: " + String(ESP.getFlashChipSize() / 1024) + " kbytes");
+    Serial.println("[CORE] esp flash chip speed .: " + String(ESP.getFlashChipSpeed() / 1000 / 1000) + " MHz");
+    Serial.println("[CORE] esp heap size ........: " + String(ESP.getHeapSize() / 1024) + " kbytes");
+    Serial.println("[CORE] esp sdk version.......: " + String(ESP.getSdkVersion()));
+    Serial.println("[CORE] esp sketch size ......: " + String(ESP.getSketchSize() / 1024) + " kbytes");
 }
 
-String getMetrics()
+void setup_copilot()
 {
-    String p = ""; // acumulador de dados
+    setCpuFrequencyMhz(80);
 
-    int sketch_size = ESP.getSketchSize();
-    int flash_size = ESP.getFreeSketchSpace();
-    int available_size = flash_size - sketch_size;
+    // Aguarda 1 segundo para não bugar o texto do terminal
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 
-    setMetric2(&p, "esp32_uptime", String(millis()));
-    setMetric2(&p, "esp32_heap_size", String(ESP.getHeapSize()));
-    setMetric2(&p, "esp32_free_heap", String(xPortGetFreeHeapSize()));
-    setMetric2(&p, "esp32_min_ever_free_heap", String(xPortGetMinimumEverFreeHeapSize()));
-    setMetric2(&p, "esp32_sketch_size", String(sketch_size));
-    setMetric2(&p, "esp32_flash_size", String(flash_size));
-    setMetric2(&p, "esp32_available_size", String(available_size));
+    Serial.begin(9600);
+    while (!Serial) // Aguarda até que o serial esteja pronto
+        vTaskDelay(10 / portTICK_PERIOD_MS);
 
-    // setMetric2(&p, "esp32_battery_voltage", String(sys_cache2.battery_voltage));
-    // setMetric2(&p, "esp32_battery_percentage", String(sys_cache2.battery_percentage));
-    // setMetric2(&p, "esp32_power_down_voltage", String(sys_cache2.power_down_voltage));
+    Serial.println("[CORE] Serial started");
 
-    setMetric2(&p, "baro_temperature", String(baro_data.temperature));
-    setMetric2(&p, "baro_pressure", String(baro_data.pressure));
-    setMetric2(&p, "baro_altitude", String(baro_data.altitude));
+    print_esp32_diagnostics();
 
-    setMetric2(&p, "gnss_altitude", String(gnss_data.altitude_meters));
-    setMetric2(&p, "gnss_latitude", String(gnss_data.location_lat, 6));
-    setMetric2(&p, "gnss_longitude", String(gnss_data.location_lng, 6));
-    setMetric2(&p, "gnss_satellite", String(gnss_data.sat_count));
-    setMetric2(&p, "gnss_millis", String(gnss_data.millis));
-    setMetric2(&p, "gnss_speed", String(gnss_data.speed_kmph));
-    setMetric2(&p, "gnss_hdop", String(gnss_data.hdop));
-    setMetric2(&p, "gnss_date", String(gnss_data.date));
-    setMetric2(&p, "gnss_time", String(gnss_data.time));
+    analogReadResolution(12);       // Define para resolução de 12 bits
+    pinMode(BUZZER_PIN, OUTPUT);    // Define o pino do buzzer como saída
+    pinMode(LED_BUILTIN, OUTPUT);   // Define o pino do LED como saída
+    digitalWrite(BUZZER_PIN, HIGH); // LED built-in
 
-    // setMetric2(&p, "esp32_mpu_temp", String(mpu_cache.temp));
-    // setMetric2(&p, "esp32_mpu_gx", String(mpu_cache.gx));
-    // setMetric2(&p, "esp32_mpu_gy", String(mpu_cache.gy));
-    // setMetric2(&p, "esp32_mpu_gz", String(mpu_cache.gz));
-    // setMetric2(&p, "esp32_mpu_ax", String(mpu_cache.ax));
-    // setMetric2(&p, "esp32_mpu_ay", String(mpu_cache.ay));
-    // setMetric2(&p, "esp32_mpu_az", String(mpu_cache.az));
-    // setMetric2(&p, "esp32_mpu_delta_z", String(mpu_cache.delta_z));
+    // Dispositivos
 
-    return p;
+    initBuzzer();
+    initSDCard();    // Configura o cartão SD
+    initOLED();      // Configura tela OLED
+    initBMP280();    // Configura barômetro
+    setup_mpu6050(false); // Configura aceletômetro
+    // setup_gnss();    // Configura GNSS
+    setup_gnss_old();
+
+    // Tarefas
+    // xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, BUZZ_TASK_PRIORITY, &BuzzerTaskHandler, CORE_1);
+
+    setup_esp_now();
+
+    Serial.println("[CORE] setup ................: FINISHED");
+}
+
+void loop_copilot()
+{
+    baro_struct_t baro_data = read_barometer();
+    // gnss_struct_t gnss_data = read_gnss();
+    loop_g();
+
+    // copilot_task(baro_data, gnss_data);
+    // copilot_task(baro_data);
+
+    vTaskDelay(1000 / portTICK_PERIOD_MS);
 }

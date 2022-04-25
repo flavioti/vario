@@ -32,8 +32,6 @@ esp_now_peer_info_t peerInfo;
 
 void OnDataRecv(const uint8_t *mac, const uint8_t *incomingData, int len)
 {
-    // Envia dados de entrada para fila para que possam
-    // ser consumidos pela task de display
     xQueueSendToBack(xQueueMetrics, incomingData, 10);
 }
 
@@ -92,109 +90,12 @@ void loop()
 #if defined(ESP32_DEV_KIT)
 
 #include <FreeRTOS.h>
-#include <Arduino.h>
-#include <esp32-hal-i2c.h>
 
-#include <Wire.h>
-#include <Adafruit_GFX.h>
-#include <Adafruit_SSD1306.h>
-
-#include <flight_companion/config.hpp>
-#include <flight_companion/queue.hpp>
-#include <flight_companion/screen.hpp>
-#include <flight_companion/bmp280.hpp>
-#include <flight_companion/buzzer.hpp>
-#include <flight_companion/network.hpp>
-#include <flight_companion/config.hpp>
-#include <flight_companion/mpu6050.hpp>
-#include <flight_companion/neo6m.hpp>
 #include <flight_companion/copilot.hpp>
-#include <CopilotSDCard.h>
-
-// STATUS
-
-static int BARO_IDX = 0;
-static int ACEL_IDX = 1;
-static int OLED_IDX = 2;
-static int SDCARD_IDX = 3;
-static int BUZZER_IDX = 4;
-bool component_status[5] = {false, false, false, false, false};
-
-TaskHandle_t CopilotTaskHandler;
-TaskHandle_t BuzzerTaskHandler;
-TaskHandle_t BaroTaskHandler;
-TaskHandle_t AccelTaskHandler;
-TaskHandle_t GNSSTaskHandler;
-
-void print_esp32_diagnostics()
-{
-    Serial.println("[CORE] esp cpu frequency ....: " + String(ESP.getCpuFreqMHz()) + " MHz");
-    Serial.println("[CORE] esp chip cores .......: " + String(ESP.getChipCores()) + " core(s)");
-    Serial.println("[CORE] esp chip model .......: " + String(ESP.getChipModel()));
-    Serial.println("[CORE] esp chip revision ....: " + String(ESP.getChipRevision()));
-    Serial.println("[CORE] esp cycle count ......: " + String(ESP.getCycleCount()));
-    // Serial.println("[CORE] esp efuse mac ......: " + ESP.getEfuseMac()); // Causa kernel panic
-    Serial.println("[CORE] esp flash chip mode ..: " + String(ESP.getFlashChipMode()));
-    Serial.println("[CORE] esp flash chip size ..: " + String(ESP.getFlashChipSize() / 1024) + " kbytes");
-    Serial.println("[CORE] esp flash chip speed .: " + String(ESP.getFlashChipSpeed() / 1000 / 1000) + " MHz");
-    Serial.println("[CORE] esp heap size ........: " + String(ESP.getHeapSize() / 1024) + " kbytes");
-    Serial.println("[CORE] esp sdk version.......: " + String(ESP.getSdkVersion()));
-    Serial.println("[CORE] esp sketch size ......: " + String(ESP.getSketchSize() / 1024) + " kbytes");
-}
 
 void setup()
 {
-    setCpuFrequencyMhz(240);
-
-    // Aguarda 1 segundo para não bugar o texto do terminal
-    vTaskDelay(1000 / portTICK_PERIOD_MS);
-
-    Serial.begin(9600);
-    while (!Serial) // Aguarda até que o serial esteja pronto
-        vTaskDelay(10 / portTICK_PERIOD_MS);
-
-    Serial.println("[CORE] Serial started");
-
-    print_esp32_diagnostics();
-
-    analogReadResolution(12);       // Define para resolução de 12 bits
-    pinMode(BUZZER_PIN, OUTPUT);    // Define o pino do buzzer como saída
-    pinMode(LED_BUILTIN, OUTPUT);   // Define o pino do LED como saída
-    digitalWrite(BUZZER_PIN, HIGH); // LED built-in
-
-    // Dispositivos
-
-    component_status[BUZZER_IDX] = initBuzzer();
-    component_status[SDCARD_IDX] = initSDCard(); // Configura o cartão SD
-    component_status[OLED_IDX] = initOLED();     // Configura tela OLED
-    component_status[BARO_IDX] = initBMP280();   // Configura barômetro
-    setup_mpu6050();                             // Configura aceletômetro
-    setup_gnss();                                // Configura GNSS
-
-    // Tarefas
-
-    xTaskCreatePinnedToCore(copilot_task, "copilot_task", 5000, NULL, COPI_TASK_PRIORITY, &CopilotTaskHandler, 0);
-    xTaskCreatePinnedToCore(gnss_task, "gnss_task", 5000, NULL, GNSS_TASK_PRIORITY, &GNSSTaskHandler, CORE_1);
-
-    if (component_status[BARO_IDX])
-    {
-        // Se o barometro não for detectado, não habilita tarefas
-        // do buzzer nem do barometro
-        xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, BUZZ_TASK_PRIORITY, &BuzzerTaskHandler, CORE_1);
-        xTaskCreatePinnedToCore(baro_task, "baro_task", 2048, NULL, BARO_TASK_PRIORITY, &BaroTaskHandler, CORE_1);
-    }
-
-    xTaskCreatePinnedToCore(accel_task, "accel_task", 2048, NULL, ACEL_TASK_PRIORITY, &AccelTaskHandler, CORE_1);
-
-// Configura o WIFI ou ESP NOW
-#if defined(USE_ESPNOW)
-    setup_esp_now();
-#else
-    connect_wifi();
-    // Levanta servidor HTTP interno
-    config_web_server();
-#endif
-    Serial.println("[CORE] setup ................: FINISHED");
+    setup_copilot();
 }
 
 unsigned long min_next_loop_millis = 0;
@@ -203,22 +104,7 @@ char ptrTaskList[250];
 
 void loop()
 {
-    if (millis() > min_next_loop_millis)
-    {
-#ifdef XDEBUG
-        if (uxTaskGetNumberOfTasks() > 15)
-        {
-            Serial.printf("[CORE] Task count: %i\n", uxTaskGetNumberOfTasks());
-        }
-#endif
-        min_next_loop_millis = millis() + 10000;
-    } // TIMED LOOP
-
-    // Configura o WIFI ou ESP NOW
-#if not defined(USE_ESPNOW)
-      // Response when a client access via http
-    handle_client();
-#endif
+    loop_copilot();
 }
 
 #endif
