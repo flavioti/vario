@@ -18,7 +18,8 @@
 #include <flight_companion/copilot.hpp>
 #include <CopilotSDCard.h>
 #include <CopilotMessages.hpp>
-#include <gps.hpp>
+// #include <gps.hpp>
+#include <neo6m.hpp>
 
 struct gnss_struct gnss_data;
 struct baro_struct_t baro_data;
@@ -93,8 +94,8 @@ void copilot_task(baro_struct_t baro_data, gnss_struct_t gnss_data)
     myData.gnss_data = gnss_data;
     myData.baro_data = baro_data;
 
-    Serial.println(myData.baro_data.toString());
-    Serial.println(myData.gnss_data.toString());
+    Serial.println("[COPILOT] " + myData.baro_data.toString());
+    Serial.println("[COPILOT] " + myData.gnss_data.toString());
 
     // BUZZER
 
@@ -155,8 +156,8 @@ void setup_copilot()
     initOLED();      // Configura tela OLED
     initBMP280();    // Configura barômetro
     setup_mpu6050(false); // Configura aceletômetro
-    // setup_gnss();    // Configura GNSS
-    setup_gnss_old();
+    setup_gnss();    // Configura GNSS
+    // setup_gnss_old();
 
     // Tarefas
     // xTaskCreatePinnedToCore(buzzer_task, "buzzer_task", 1024, NULL, BUZZ_TASK_PRIORITY, &BuzzerTaskHandler, CORE_1);
@@ -169,11 +170,7 @@ void setup_copilot()
 void loop_copilot()
 {
     baro_struct_t baro_data = read_barometer();
-    // gnss_struct_t gnss_data = read_gnss();
-    loop_g();
-
-    // copilot_task(baro_data, gnss_data);
-    // copilot_task(baro_data);
-
+    gnss_struct_t gnss_data = read_gnss();
+    copilot_task(baro_data, gnss_data);
     vTaskDelay(1000 / portTICK_PERIOD_MS);
 }

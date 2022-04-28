@@ -8,7 +8,6 @@
 #include "epd_driver.h" // https://github.com/Xinyuan-LilyGO/LilyGo-EPD47
 
 #include <flight_display/queue.hpp>     // queues
-#include <model/espnow_message.hpp>     // structures
 #include <model/display_structures.hpp> // structures
 #include <flight_display/font_files/opensans8.h>
 #include <flight_display/font_files/opensans8b.h>
@@ -18,6 +17,7 @@
 #include <flight_display/font_files/opensans24b.h>
 #include <flight_display/font_files/opensans26.h>
 #include <flight_display/font_files/opensans26b.h>
+#include <CopilotMessages.hpp>
 
 uint8_t *framebuffer;
 GFXfont currentFont;

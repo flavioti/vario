@@ -20,9 +20,9 @@ struct gnss_struct_t
   String toString()
   {
     return "sat=" + String(sat_count) +
+           " altitude=" + String(altitude_meters) +
            " lat=" + String(location_lat) +
            " lng=" + String(location_lng) +
-           " altitude=" + String(altitude_meters) +
            " kmph=" + String(speed_kmph) +
            " course_value=" + String(course_value) +
            " course_deg=" + String(course_deg) +

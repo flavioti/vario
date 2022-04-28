@@ -12,11 +12,13 @@ HardwareSerial SerialGPS(1);
 
 int state = 0;
 
+#define RX_PIN 16 // RX2
+#define TX_PIN 17 // TX2
+
 void setup_gnss_old()
 {
   Serial.println("setup_gnss_old");
-  Wire.begin(21, 22);
-  SerialGPS.begin(9600, SERIAL_8N1, 34, 12);
+  SerialGPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN, false);
 }
 
 void loop_g()
@@ -51,7 +53,7 @@ void loop_g()
     Serial.println("GPS Issuing hardReset (cold start)");
     myGPS.hardReset();
     delay(1000);
-    SerialGPS.begin(9600, SERIAL_8N1, 34, 12);
+    SerialGPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN, false);
     if (myGPS.begin(SerialGPS))
     {
       Serial.println("GPS Success.");
@@ -68,7 +70,7 @@ void loop_g()
     Serial.println("Issuing factoryReset");
     myGPS.factoryReset();
     delay(1000); // takes more than one second... a loop to resync would be best
-    SerialGPS.begin(9600, SERIAL_8N1, 34, 12);
+    SerialGPS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN, false);
     if (myGPS.begin(SerialGPS))
     {
       Serial.println("GPS Success, gps has been reset with factory settings");
@@ -86,6 +88,7 @@ void loop_g()
     {
       char c = SerialGPS.read();
       gps.encode(c);
+      Serial.print(c);
     }
 
     Serial.println("Sat\tAlt");

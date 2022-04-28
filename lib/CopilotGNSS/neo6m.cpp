@@ -6,83 +6,24 @@
 #include <neo6m.hpp>
 
 HardwareSerial SerialGNSS(1);
+TinyGPSPlus gnss_parser;
+SFE_UBLOX_GPS myGPS;
+
+#define RX_PIN 16 // RX2
+#define TX_PIN 17 // TX2
 
 void setup_gnss()
 {
-    Wire.begin(21, 22);
-    SerialGNSS.begin(9600, SERIAL_8N1, 34, 12);
+    SerialGNSS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN, false);
     Serial.println("\n[GNSS] baud rate.............: " + String(SerialGNSS.baudRate()));
     Serial.println("[GNSS] availability check....: " + SerialGNSS.available() > 0 ? "OK" : "FAILED");
 }
 
-// gnss_struct_t read_gnss()
-// {
-//     TinyGPSPlus gnss_parser;
-//     while (SerialGNSS.available())
-//     {
-//         char c = SerialGNSS.read();
-//         gnss_parser.encode(c);
-//     }
-
-//     struct gnss_struct_t data;
-
-//     if ((gnss_parser.satellites.isUpdated()) and gnss_parser.satellites.isValid())
-//     {
-//         data.sat_count = gnss_parser.satellites.value();
-//     }
-
-//     if ((gnss_parser.location.isUpdated()) and gnss_parser.location.isValid())
-//     {
-//         data.location_lat = gnss_parser.location.lat();
-//         data.location_lng = gnss_parser.location.lng();
-//     }
-
-//     if ((gnss_parser.altitude.isUpdated()) and gnss_parser.altitude.isValid())
-//     {
-//         data.altitude_meters = gnss_parser.altitude.meters();
-//     }
-
-//     if ((gnss_parser.speed.isUpdated()) and gnss_parser.speed.isValid())
-//     {
-//         data.speed_kmph = gnss_parser.speed.kmph();
-//     }
-
-//     if ((gnss_parser.course.isUpdated()) and gnss_parser.course.isValid())
-//     {
-//         data.course_value = gnss_parser.course.value();
-//         data.course_deg = gnss_parser.course.deg();
-//         data.course_cardinal = gnss_parser.cardinal(data.course_deg);
-//     }
-
-//     if ((gnss_parser.date.isUpdated()) and gnss_parser.date.isValid())
-//     {
-//         data.date = gnss_parser.date.value();
-//     }
-
-//     if ((gnss_parser.time.isUpdated()) and gnss_parser.time.isValid())
-//     {
-//         data.time = gnss_parser.time.value();
-//     }
-
-//     if ((gnss_parser.hdop.isUpdated()) and gnss_parser.hdop.isValid())
-//     {
-//         // Diluição da Precisão Horizontal
-//         data.hdop = gnss_parser.hdop.value();
-//     }
-
-//     return data;
-// }
-
-TinyGPSPlus gps;
-HardwareSerial GPS(1);
-
-SFE_UBLOX_GPS myGPS;
-
-int state = 1;
+int state = 3;
+unsigned long reset_gnss_control = millis();
 
 gnss_struct_t read_gnss()
 {
-    Serial.println("[GNSS] read_gnss");
     switch (state)
     {
     case 0: // soft solution, should be sufficient and works in most (all) cases
@@ -113,7 +54,7 @@ gnss_struct_t read_gnss()
         Serial.println("GPS Issuing hardReset (cold start)");
         myGPS.hardReset();
         delay(1000);
-        SerialGNSS.begin(9600, SERIAL_8N1, 34, 12);
+        SerialGNSS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN, false);
         if (myGPS.begin(SerialGNSS))
         {
             Serial.println("GPS Success.");
@@ -130,7 +71,7 @@ gnss_struct_t read_gnss()
         Serial.println("Issuing factoryReset");
         myGPS.factoryReset();
         delay(1000); // takes more than one second... a loop to resync would be best
-        SerialGNSS.begin(9600, SERIAL_8N1, 34, 12);
+        SerialGNSS.begin(9600, SERIAL_8N1, RX_PIN, TX_PIN, false);
         if (myGPS.begin(SerialGNSS))
         {
             Serial.println("GPS Success, gps has been reset with factory settings");
@@ -144,58 +85,35 @@ gnss_struct_t read_gnss()
         break;
 
     case 3:
-        TinyGPSPlus gnss_parser;
+
+        // Caso tenha passado 5 minutos desde o último dado válido (satelites > 0) reseta o GPS
+        if ((reset_gnss_control + 300000) < millis())
+        {
+            reset_gnss_control = millis();
+            state = 0;
+            break;
+        }
+
         while (SerialGNSS.available())
         {
             char c = SerialGNSS.read();
             gnss_parser.encode(c);
+            // Serial.print(c);
         }
 
         struct gnss_struct_t data;
-
-        if ((gnss_parser.satellites.isUpdated()) and gnss_parser.satellites.isValid())
-        {
-            data.sat_count = gnss_parser.satellites.value();
-        }
-
-        if ((gnss_parser.location.isUpdated()) and gnss_parser.location.isValid())
-        {
-            data.location_lat = gnss_parser.location.lat();
-            data.location_lng = gnss_parser.location.lng();
-        }
-
-        if ((gnss_parser.altitude.isUpdated()) and gnss_parser.altitude.isValid())
-        {
-            data.altitude_meters = gnss_parser.altitude.meters();
-        }
-
-        if ((gnss_parser.speed.isUpdated()) and gnss_parser.speed.isValid())
-        {
-            data.speed_kmph = gnss_parser.speed.kmph();
-        }
-
-        if ((gnss_parser.course.isUpdated()) and gnss_parser.course.isValid())
-        {
-            data.course_value = gnss_parser.course.value();
-            data.course_deg = gnss_parser.course.deg();
-            data.course_cardinal = gnss_parser.cardinal(data.course_deg);
-        }
-
-        if ((gnss_parser.date.isUpdated()) and gnss_parser.date.isValid())
-        {
-            data.date = gnss_parser.date.value();
-        }
-
-        if ((gnss_parser.time.isUpdated()) and gnss_parser.time.isValid())
-        {
-            data.time = gnss_parser.time.value();
-        }
-
-        if ((gnss_parser.hdop.isUpdated()) and gnss_parser.hdop.isValid())
-        {
-            // Diluição da Precisão Horizontal
-            data.hdop = gnss_parser.hdop.value();
-        }
+        data.sat_count = gnss_parser.satellites.value();
+        data.location_lat = gnss_parser.location.lat();
+        data.location_lng = gnss_parser.location.lng();
+        data.altitude_meters = gnss_parser.altitude.meters();
+        data.speed_kmph = gnss_parser.speed.kmph();
+        data.course_value = gnss_parser.course.value();
+        data.course_deg = gnss_parser.course.deg();
+        data.course_cardinal = gnss_parser.cardinal(data.course_deg);
+        data.date = gnss_parser.date.value();
+        data.time = gnss_parser.time.value();
+        // Diluição da Precisão Horizontal
+        data.hdop = gnss_parser.hdop.value();
 
         return data;
     }

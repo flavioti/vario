@@ -3,8 +3,8 @@
 
 #include <CopilotMessages.hpp>
 
-// void setup_gnss();
+void setup_gnss();
 
-// gnss_struct_t read_gnss();
+gnss_struct_t read_gnss();
 
 #endif
